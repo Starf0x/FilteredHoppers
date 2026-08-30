@@ -10,6 +10,9 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.Hopper;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Transformation;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -24,6 +27,10 @@ public final class FilterVisual {
 
     private static final float VIEW_RANGE = 1.0f;
     private static final long CLEANUP_PERIOD = 20L;
+    // 1/16 of a block: the overlay grows one texture-pixel beyond the block on
+    // each horizontal side (top and bottom stay exactly on the block) so its
+    // faces no longer z-fight with the hopper underneath.
+    private static final Vector3f SCALE = new Vector3f(1.125f, 1f, 1.125f);
 
     private final HopperFilterPlugin plugin;
     private final Map<Location, BlockDisplay> overlays = new ConcurrentHashMap<>();
@@ -105,6 +112,7 @@ public final class FilterVisual {
         BlockDisplay display = block.getWorld().spawn(block.getLocation(), BlockDisplay.class);
         display.setBlock(Material.RED_STAINED_GLASS.createBlockData());
         display.setViewRange(VIEW_RANGE);
+        display.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), SCALE, new Quaternionf()));
         overlays.put(block.getLocation().clone(), display);
     }
 
