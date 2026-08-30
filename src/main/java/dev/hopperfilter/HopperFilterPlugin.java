@@ -26,7 +26,7 @@ public final class HopperFilterPlugin extends JavaPlugin {
         getCommand("hopperfilter").setExecutor(new HopperFilterCommand(this));
         getServer().getPluginManager().registerEvents(new HopperFilterListener(this), this);
 
-        getLogger().log(Level.INFO, "PaperFilteredHoppers geladen.");
+        getLogger().log(Level.INFO, "PaperFilteredHoppers loaded.");
     }
 
     @Override

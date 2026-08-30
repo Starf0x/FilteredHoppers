@@ -14,9 +14,9 @@ import java.util.Base64;
 import java.util.List;
 
 /**
- * Bewaart per hopper de "toestaan"-lijst en de "blokkeren"-lijst in het NBT
- * van het blok, zodat beide modussen tegelijk bekend zijn en het overleeft
- * bij serverherstart.
+ * Stores the "allow" list and the "block" list per hopper in the NBT of the
+ * block, so both modes are known at the same time and survive a server
+ * restart.
  */
 public final class FilterManager {
 
@@ -32,7 +32,7 @@ public final class FilterManager {
         this.keyMode = new NamespacedKey(plugin, "hopper-filter-mode");
     }
 
-    /** Items van een modus (leeg als er geen item in zit). */
+    /** Items of a mode (empty if there are none). */
     public List<ItemStack> getItems(Block block, FilterMode mode) {
         if (!(block.getState() instanceof TileState tile)) {
             return List.of();
@@ -53,7 +53,7 @@ public final class FilterManager {
         return items;
     }
 
-    /** Overschrijft de items van een modus; een lege lijst verwijdert ze. */
+    /** Overwrites the items of a mode; an empty list removes them. */
     public void saveFilter(Block block, FilterMode mode, List<ItemStack> items) {
         if (!(block.getState() instanceof TileState tile)) {
             return;
@@ -73,7 +73,7 @@ public final class FilterManager {
         plugin.getFilterVisual().update(block);
     }
 
-    /** Verwijdert beide filterlijsten: de hopper wordt weer 'gewoon'. */
+    /** Removes both filter lists: the hopper becomes 'normal' again. */
     public void clearFilter(Block block) {
         if (!(block.getState() instanceof TileState tile)) {
             return;
@@ -86,14 +86,14 @@ public final class FilterManager {
         plugin.getFilterVisual().update(block);
     }
 
-    /** Heeft deze hopper een actief filter (een van beide lijsten gevuld)? */
+    /** Does this hopper have an active filter (one of the lists filled)? */
     public boolean isFilterHopper(Block block) {
         return block != null
                 && (!getItems(block, FilterMode.ALLOW).isEmpty()
                 || !getItems(block, FilterMode.BLOCK).isEmpty());
     }
 
-    /** De modus die de GUI als laatste toonde (default: ALLOW). */
+    /** The mode the GUI showed last (default: ALLOW). */
     public FilterMode getMode(Block block) {
         if (block.getState() instanceof TileState tile) {
             Boolean blockMode = tile.getPersistentDataContainer().get(keyMode, PersistentDataType.BOOLEAN);
@@ -113,8 +113,8 @@ public final class FilterManager {
     }
 
     /**
-     * Mag het item de hopper in? De blok-lijst wint altijd; als de toestaan-
-     * lijst items bevat moet het item daarin matchen.
+     * May the item enter the hopper? The block list always wins; if the allow
+     * list has items, the item also has to match one of them.
      */
     public boolean isAllowed(Block block, ItemStack item) {
         if (item == null) {
@@ -142,7 +142,7 @@ public final class FilterManager {
         return matchByType ? filterItem.getType() == item.getType() : filterItem.isSimilar(item);
     }
 
-    /** Hoort een inventory bij een hopper? Zoja, geef het blok terug. */
+    /** Is this inventory owned by a hopper? If so, return the block. */
     public Block getHopperBlock(Inventory inventory) {
         if (inventory != null && inventory.getHolder() instanceof Hopper hopper) {
             return hopper.getBlock();

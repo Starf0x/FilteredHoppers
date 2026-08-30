@@ -1,9 +1,9 @@
 package dev.hopperfilter;
 
-/** De twee filtermodussen van een hopper. */
+/** The two filter modes of a hopper. */
 public enum FilterMode {
-    /** Groen (emerald): de items worden toegelaten. */
+    /** Green (emerald): the items are allowed. */
     ALLOW,
-    /** Zwart (blackstone): de items worden geblokkeerd. */
+    /** Black (blackstone): the items are blocked. */
     BLOCK
 }

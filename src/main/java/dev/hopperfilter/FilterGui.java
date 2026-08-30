@@ -13,9 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 9-slot filtermenu: slot 0 is een groene emerald (toestaan) die met een
- * klik wisselt naar zwarte blackstone (blokkeren). Slot 1 t/m 8 bevatten de
- * items van die modus. Beide modussen blijven tegelijk op de hopper staan.
+ * 9-slot filter menu: slot 0 is a green emerald (allow) that switches to a
+ * black blackstone (block) on click. Slots 1-8 hold the items of that mode.
+ * Both modes stay on the hopper at the same time.
  */
 public final class FilterGui implements InventoryHolder {
 
@@ -38,7 +38,7 @@ public final class FilterGui implements InventoryHolder {
         refresh();
     }
 
-    /** Vult slot 0 (modus-indicator) en slot 1 t/m 8 (items van de modus). */
+    /** Fills slot 0 (mode indicator) and slots 1-8 (items of the mode). */
     public void refresh() {
         inventory.clear();
         inventory.setItem(TOGGLE_SLOT, createModeItem());
@@ -57,7 +57,7 @@ public final class FilterGui implements InventoryHolder {
         return mode;
     }
 
-    /** Klik op de emerald/blackstone: slaat de huidige modus op en wisselt. */
+    /** Click on the emerald/blackstone: saves the current mode and switches. */
     public void toggleMode() {
         saveCurrentMode();
         mode = mode == FilterMode.ALLOW ? FilterMode.BLOCK : FilterMode.ALLOW;
@@ -65,7 +65,7 @@ public final class FilterGui implements InventoryHolder {
         refresh();
     }
 
-    /** Sluit van de GUI: slaat de getoonde modus op. */
+    /** Closing the GUI saves the displayed mode. */
     public void commit() {
         saveCurrentMode();
     }
@@ -88,15 +88,15 @@ public final class FilterGui implements InventoryHolder {
         ItemStack item = new ItemStack(blockMode ? Material.BLACKSTONE : Material.EMERALD_BLOCK);
         ItemMeta meta = item.getItemMeta();
         if (blockMode) {
-            meta.displayName(Text.colorize("&4BLOK MODUS"));
+            meta.displayName(Text.colorize("&4BLOCK MODE"));
             meta.lore(List.of(
-                    Text.colorize("&7Items hieronder worden &cgeblokkeerd&7."),
-                    Text.colorize("&8Klik om terug te schakelen naar groen (toestaan)")));
+                    Text.colorize("&7The items below are &cblocked&7."),
+                    Text.colorize("&8Click to switch back to green (allow)")));
         } else {
-            meta.displayName(Text.colorize("&2FILTER MODUS (toestaan)"));
+            meta.displayName(Text.colorize("&2FILTER MODE (allow)"));
             meta.lore(List.of(
-                    Text.colorize("&7Items hieronder worden &atoegelaten&7."),
-                    Text.colorize("&8Klik om te schakelen naar zwart (blokkeren)")));
+                    Text.colorize("&7The items below are &aallowed&7."),
+                    Text.colorize("&8Click to switch to black (block)")));
         }
         item.setItemMeta(meta);
         return item;

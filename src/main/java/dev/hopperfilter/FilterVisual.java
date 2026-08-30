@@ -18,13 +18,13 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Toont een rode rand rond hoppers met een actief filter.
+ * Shows a red rim around hoppers with an active filter.
  *
- * Performance: de set wordt alleen bijgewerkt bij gebeurtenissen (opslaan,
- * wissen, chunk laden). De periodieke taak doet GEEN NBT-uitlezingen: hij
- * controleert eerst of de chunk geladen is (goedkoop) en of het blok nog een
- * hopper-blokdata is (goedkoop, zonder tile-entity), en spawnt alleen
- * deeltjes als er een speler binnen 32 blokken staat.
+ * Performance: the set is only updated on events (saving, clearing, chunk
+ * loading). The periodic task does NO NBT reads: it first checks whether the
+ * chunk is loaded (cheap) and whether the block is still hopper block-data
+ * (cheap, no tile-entity), and only spawns particles when a player is within
+ * 32 blocks.
  */
 public final class FilterVisual {
 
@@ -56,7 +56,7 @@ public final class FilterVisual {
         locations.clear();
     }
 
-    /** Voegt toe of verwijdert het blok op basis van of er een actief filter is. */
+    /** Adds or removes the block based on whether it has an active filter. */
     public void update(Block block) {
         Location loc = block.getLocation();
         if (plugin.getSettings().isVisualEnabled() && plugin.getFilterManager().isFilterHopper(block)) {
@@ -66,7 +66,7 @@ public final class FilterVisual {
         }
     }
 
-    /** Bij chunk laden de bestaande filterhoppers uit dit chunk opnieuw registeren. */
+    /** On chunk load, re-register the existing filter hoppers of this chunk. */
     public void rebuildChunk(Chunk chunk) {
         if (!plugin.getSettings().isVisualEnabled()) {
             return;

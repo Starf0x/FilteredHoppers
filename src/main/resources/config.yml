@@ -1,20 +1,20 @@
-# Configuratie voor PaperFilteredHoppers
+# Configuration for PaperFilteredHoppers
 #
-# Elke hopper kan gefilterd worden. Er is geen tool nodig:
-#   shift-rechtsklik een hopper  -> open het filtermenu
+# Every hopper can be filtered. No tool is needed:
+#   shift-right-click a hopper  -> open the filter menu
 #
-# Het filtermenu is altijd 9 slots:
-#   slot 0  = groene emerald (toestaan-modus) / zwarte blackstone (blokkeren-modus)
-#             Klik op slot 0 om te wisselen; de items in slot 1 t/m 8 horen
-#             bij de getoonde modus. Beide lijsten blijven tegelijk op de hopper staan.
-#   slot 1-8 = de te filteren items van de getoonde modus. Klik het item dat je
-#              wilt filteren vanuit je eigen inventory in een slot.
+# The filter menu always has 9 slots:
+#   slot 0  = green emerald (allow mode) / black blackstone (block mode)
+#             Click slot 0 to switch; the items in slots 1-8 belong
+#             to the displayed mode. Both lists stay on the hopper at the same time.
+#   slot 1-8 = the filter items of the displayed mode. Click the item you
+#              want to filter from your own inventory into a slot.
 
 gui-title: "&0Hopper Filter"
 
-# Matched het filter alleen op het itemtype (true), of ook op
-# naam/lore/enchantments (false = exacte item-vergelijking)?
+# Whether the filter matches only the item type (true), or also
+# name/lore/enchantments (false = exact item comparison)?
 match-by-type: true
 
-# Visuele hint: geef filterhoppers (met een actief filter) een rode rand.
+# Visual hint: give filter hoppers (with an active filter) a red rim.
 visual-enabled: true

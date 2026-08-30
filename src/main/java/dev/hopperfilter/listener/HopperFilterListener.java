@@ -30,7 +30,7 @@ public final class HopperFilterListener implements Listener {
         this.manager = plugin.getFilterManager();
     }
 
-    /** Elke hopper is een filterhopper: shift-rechtsklik opent het filtermenu. */
+    /** Every hopper is a filter hopper: shift-right-click opens the filter menu. */
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
@@ -47,10 +47,10 @@ public final class HopperFilterListener implements Listener {
 
         event.setCancelled(true);
         player.openInventory(new FilterGui(plugin, block).getInventory());
-        player.sendMessage(Text.colorize("&7Groen = toestaan, zwart = blokkeren. Klik het te filteren item in een slot en sluit om op te slaan."));
+        player.sendMessage(Text.colorize("&7Green = allow, black = block. Click the item to filter into a slot and close to save."));
     }
 
-    /** Alleen de emerald/blackstone op slot 0 mag wisselen; de rest is het menu. */
+    /** Only the emerald/blackstone on slot 0 may switch; the rest is the menu. */
     @EventHandler(ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getInventory().getHolder() instanceof FilterGui gui)) {
@@ -66,7 +66,7 @@ public final class HopperFilterListener implements Listener {
         }
     }
 
-    /** Voorkom dat je items op de emerald/blackstone sleept. */
+    /** Prevent dragging items onto the emerald/blackstone. */
     @EventHandler(ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getInventory().getHolder() instanceof FilterGui)) {
@@ -77,7 +77,7 @@ public final class HopperFilterListener implements Listener {
         }
     }
 
-    /** Item via de grond laten opnemen alleen als het door de filter mag. */
+    /** Only allow ground pickups that pass the filter. */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPickup(InventoryPickupItemEvent event) {
         Block block = manager.getHopperBlock(event.getInventory());
@@ -86,7 +86,7 @@ public final class HopperFilterListener implements Listener {
         }
     }
 
-    /** Verplaatsing van container naar hopper filteren. */
+    /** Filter container-to-hopper transfers. */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryMove(InventoryMoveItemEvent event) {
         Block block = manager.getHopperBlock(event.getDestination());
@@ -95,7 +95,7 @@ public final class HopperFilterListener implements Listener {
         }
     }
 
-    /** GUI sluiten = de getoonde modus opslaan. */
+    /** Closing the GUI saves the displayed mode. */
     @EventHandler
     public void onGUIClose(InventoryCloseEvent event) {
         if (event.getInventory().getHolder() instanceof FilterGui gui) {
@@ -103,7 +103,7 @@ public final class HopperFilterListener implements Listener {
         }
     }
 
-    /** Filterhoppers in een nieuw geladen chunk opnieuw registeren voor de rode rand. */
+    /** Re-register filter hoppers of a newly loaded chunk for the red rim. */
     @EventHandler(ignoreCancelled = true)
     public void onChunkLoad(ChunkLoadEvent event) {
         plugin.getFilterVisual().rebuildChunk(event.getChunk());
