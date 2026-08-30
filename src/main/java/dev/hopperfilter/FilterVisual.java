@@ -22,9 +22,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Draws a solid red wireframe (the 12 edges of the block) around hoppers with
- * an active filter. Uses block display entities, so there are no particles:
- * only the rim itself turns red.
+ * Draws a red square rim around the TOP edges of hoppers with an active
+ * filter. Uses block display entities, so there are no particles: only the
+ * top rim turns red.
  */
 public final class FilterVisual {
 
@@ -119,21 +119,15 @@ public final class FilterVisual {
         double by = base.getY();
         double bz = base.getZ();
         float t = THICKNESS;
-        Quaternionf identity = new Quaternionf();
         Vector3f down = new Vector3f(0f, -t / 2f, 0f);
 
         List<Entity> entities = new ArrayList<>();
-        for (int c1 = 0; c1 <= 1; c1++) {
-            for (int c2 = 0; c2 <= 1; c2++) {
-                double a1 = c1;
-                double a2 = c2;
-                // 4 edges parallel to X
-                entities.add(edge(world, bx + 0.5, by + a1, bz + a2, new Vector3f(1, t, t), down));
-                // 4 edges parallel to Y
-                entities.add(edge(world, bx + a1, by, bz + a2, new Vector3f(t, 1, t), new Vector3f()));
-                // 4 edges parallel to Z
-                entities.add(edge(world, bx + a1, by + a2, bz + 0.5, new Vector3f(t, t, 1), down));
-            }
+        for (int c = 0; c <= 1; c++) {
+            double a = c;
+            // two long edges along X on front and back of the top rim
+            entities.add(edge(world, bx + 0.5, by + 1, bz + a, new Vector3f(1, t, t), down));
+            // two long edges along Z on left and right of the top rim
+            entities.add(edge(world, bx + a, by + 1, bz + 0.5, new Vector3f(t, t, 1), down));
         }
         rims.put(base.clone(), entities);
     }

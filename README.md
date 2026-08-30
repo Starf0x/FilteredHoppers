@@ -88,9 +88,9 @@ You can switch this in the config to **exact matching**: then name, lore, and en
 
 ## The red rim
 
-As soon as a hopper has an **active filter** (green or black filled), the **edges of the block turn red** (a solid red wireframe). You see in one glance which hoppers are doing something special.
+As soon as a hopper has an **active filter** (green or black filled), a **red square rim** is drawn around the **top edges** of the block. You see in one glance which hoppers are doing something special.
 
-- No particles: the rim is a real red border around the block's edges.
+- No particles: the rim is a real red square border on the hopper's top.
 - The rim appears and disappears on its own when you save or clear a filter.
 - The rim hides beyond ~16 blocks and never shows in unloaded areas, so it costs almost nothing.
 
