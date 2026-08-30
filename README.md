@@ -37,7 +37,7 @@ The name and description of the indicator always tell you which mode you are edi
 ### 3. Adding filter items
 
 - Make sure the menu is on the mode you want (see point 4).
-- **Click the items you want to filter from your own inventory into the slots**. Each slot holds a single item (stack of 1).
+- **Click the items you want to filter from your own inventory into the slots**. Each slot holds a single item (stack of 1), and every item type appears only once (duplicates are dropped).
 - Close the screen to save. The hopper knows immediately.
 
 ### 4. Switching between the modes
@@ -88,12 +88,11 @@ You can switch this in the config to **exact matching**: then name, lore, and en
 
 ## The red rim
 
-As soon as a hopper has an **active filter** (green or black filled), it gets a **red glowing rim** of particles along the edges of the block. You see in one glance which hoppers are doing something special.
+As soon as a hopper has an **active filter** (green or black filled), the **edges of the block turn red** (a solid red wireframe). You see in one glance which hoppers are doing something special.
 
+- No particles: the rim is a real red border around the block's edges.
 - The rim appears and disappears on its own when you save or clear a filter.
-- Particles are only visible when you stand within **~32 blocks**; far away or in unloaded areas it costs nothing.
-- Optimized so it barely costs any server performance.
-- Can be switched off via the config (`visual-enabled`).
+- The rim hides beyond ~16 blocks and never shows in unloaded areas, so it costs almost nothing.
 
 ---
 

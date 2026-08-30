@@ -2,39 +2,38 @@ package dev.hopperfilter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
-import org.bukkit.Color;
 import org.bukkit.Location;
-import org.bukkit.Particle;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Hopper;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Transformation;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Shows a red rim around hoppers with an active filter.
- *
- * Performance: the set is only updated on events (saving, clearing, chunk
- * loading). The periodic task does NO NBT reads: it first checks whether the
- * chunk is loaded (cheap) and whether the block is still hopper block-data
- * (cheap, no tile-entity), and only spawns particles when a player is within
- * 32 blocks.
+ * Draws a solid red wireframe (the 12 edges of the block) around hoppers with
+ * an active filter. Uses block display entities, so there are no particles:
+ * only the rim itself turns red.
  */
 public final class FilterVisual {
 
-    private static final double PLAYER_RADIUS = 32.0;
-    private static final double PLAYER_RADIUS_SQ = PLAYER_RADIUS * PLAYER_RADIUS;
-    private static final long PERIOD_TICKS = 10L;
-    private static final Particle.DustOptions RED = new Particle.DustOptions(Color.RED, 1f);
+    private static final float THICKNESS = 0.05f;
+    private static final float VIEW_RANGE = 1.0f;
+    private static final long CLEANUP_PERIOD = 20L;
 
     private final HopperFilterPlugin plugin;
-    private final Set<Location> locations = new HashSet<>();
+    private final Map<Location, List<Entity>> rims = new ConcurrentHashMap<>();
     private BukkitTask task;
 
     public FilterVisual(HopperFilterPlugin plugin) {
@@ -42,10 +41,17 @@ public final class FilterVisual {
     }
 
     public void start() {
-        if (task != null) {
+        if (task == null) {
+            task = Bukkit.getScheduler().runTaskTimer(plugin, this::cleanup, CLEANUP_PERIOD, CLEANUP_PERIOD);
+        }
+        if (!plugin.getSettings().isVisualEnabled()) {
             return;
         }
-        task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20L, PERIOD_TICKS);
+        for (World world : Bukkit.getWorlds()) {
+            for (Chunk chunk : world.getLoadedChunks()) {
+                rebuildChunk(chunk);
+            }
+        }
     }
 
     public void stop() {
@@ -53,97 +59,99 @@ public final class FilterVisual {
             task.cancel();
             task = null;
         }
-        locations.clear();
+        for (List<Entity> list : rims.values()) {
+            for (Entity entity : list) {
+                entity.remove();
+            }
+        }
+        rims.clear();
     }
 
-    /** Adds or removes the block based on whether it has an active filter. */
+    /** Adds or removes the wireframe based on whether the hopper has a filter. */
     public void update(Block block) {
         Location loc = block.getLocation();
         if (plugin.getSettings().isVisualEnabled() && plugin.getFilterManager().isFilterHopper(block)) {
-            locations.add(loc);
+            if (!rims.containsKey(loc)) {
+                spawnRim(block);
+            }
         } else {
-            locations.remove(loc);
+            removeRim(loc);
         }
     }
 
-    /** On chunk load, re-register the existing filter hoppers of this chunk. */
+    /** Re-register wireframes of a newly loaded chunk; existing entities live on. */
     public void rebuildChunk(Chunk chunk) {
         if (!plugin.getSettings().isVisualEnabled()) {
             return;
         }
         for (BlockState state : chunk.getTileEntities(false)) {
-            if (state instanceof Hopper hopper && plugin.getFilterManager().isFilterHopper(hopper.getBlock())) {
-                locations.add(hopper.getBlock().getLocation());
+            if (state instanceof Hopper hopper) {
+                Block block = hopper.getBlock();
+                Location loc = block.getLocation();
+                if (!rims.containsKey(loc) && plugin.getFilterManager().isFilterHopper(block)) {
+                    spawnRim(block);
+                }
             }
         }
     }
 
-    private void tick() {
-        if (!plugin.isEnabled() || !plugin.getSettings().isVisualEnabled() || locations.isEmpty()) {
+    /** Broken or de-filtered hoppers lose their wireframe again. */
+    private void cleanup() {
+        if (rims.isEmpty()) {
             return;
         }
-        for (Iterator<Location> it = locations.iterator(); it.hasNext(); ) {
-            Location loc = it.next();
-            World world = loc.getWorld();
-            int cx = loc.getBlockX() >> 4;
-            int cz = loc.getBlockZ() >> 4;
-            if (!world.isChunkLoaded(cx, cz)) {
+        for (Iterator<Map.Entry<Location, List<Entity>>> it = rims.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<Location, List<Entity>> entry = it.next();
+            Block block = entry.getKey().getBlock();
+            if (block.getType() != Material.HOPPER || !plugin.getFilterManager().isFilterHopper(block)) {
+                for (Entity entity : entry.getValue()) {
+                    entity.remove();
+                }
                 it.remove();
-                continue;
-            }
-            Block block = loc.getBlock();
-            if (!(block.getBlockData() instanceof org.bukkit.block.data.type.Hopper)) {
-                it.remove();
-                continue;
-            }
-            List<Player> players = world.getPlayers();
-            if (players.isEmpty() || !hasNearbyPlayer(players, loc)) {
-                continue;
-            }
-            spawnRim(block);
-        }
-    }
-
-    private boolean hasNearbyPlayer(List<Player> players, Location loc) {
-        for (Player player : players) {
-            if (player.getLocation().distanceSquared(loc) <= PLAYER_RADIUS_SQ) {
-                return true;
             }
         }
-        return false;
     }
 
     private void spawnRim(Block block) {
+        Location base = block.getLocation();
         World world = block.getWorld();
-        double x = block.getX();
-        double y = block.getY();
-        double z = block.getZ();
-        double[] s = {0.0, 1.0};
-        // 4 edges parallel to X
-        for (double c1 : s) {
-            for (double c2 : s) {
-                line(world, x, y + c1, z + c2, 1.0, 0.0, 0.0);
+        double bx = base.getX();
+        double by = base.getY();
+        double bz = base.getZ();
+        float t = THICKNESS;
+        Quaternionf identity = new Quaternionf();
+        Vector3f down = new Vector3f(0f, -t / 2f, 0f);
+
+        List<Entity> entities = new ArrayList<>();
+        for (int c1 = 0; c1 <= 1; c1++) {
+            for (int c2 = 0; c2 <= 1; c2++) {
+                double a1 = c1;
+                double a2 = c2;
+                // 4 edges parallel to X
+                entities.add(edge(world, bx + 0.5, by + a1, bz + a2, new Vector3f(1, t, t), down));
+                // 4 edges parallel to Y
+                entities.add(edge(world, bx + a1, by, bz + a2, new Vector3f(t, 1, t), new Vector3f()));
+                // 4 edges parallel to Z
+                entities.add(edge(world, bx + a1, by + a2, bz + 0.5, new Vector3f(t, t, 1), down));
             }
         }
-        // 4 edges parallel to Y
-        for (double c1 : s) {
-            for (double c2 : s) {
-                line(world, x + c1, y, z + c2, 0.0, 1.0, 0.0);
-            }
-        }
-        // 4 edges parallel to Z
-        for (double c1 : s) {
-            for (double c2 : s) {
-                line(world, x + c1, y + c2, z, 0.0, 0.0, 1.0);
-            }
-        }
+        rims.put(base.clone(), entities);
     }
 
-    /** Draws a continuous, solid red line of dust particles along an edge. */
-    private void line(World world, double x, double y, double z, double dx, double dy, double dz) {
-        for (double t = 0.0; t <= 1.0; t += 0.125) {
-            double a = Math.min(t, 1.0);
-            world.spawnParticle(Particle.DUST, x + dx * a, y + dy * a, z + dz * a, 1, RED);
+    private BlockDisplay edge(World world, double x, double y, double z, Vector3f scale, Vector3f translation) {
+        BlockDisplay display = world.spawn(new Location(world, x, y, z), BlockDisplay.class);
+        display.setBlock(Material.RED_CONCRETE.createBlockData());
+        display.setViewRange(VIEW_RANGE);
+        display.setTransformation(new Transformation(translation, new Quaternionf(), scale, new Quaternionf()));
+        return display;
+    }
+
+    private void removeRim(Location loc) {
+        List<Entity> list = rims.remove(loc);
+        if (list != null) {
+            for (Entity entity : list) {
+                entity.remove();
+            }
         }
     }
 }

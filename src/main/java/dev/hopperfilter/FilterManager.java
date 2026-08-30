@@ -1,5 +1,6 @@
 package dev.hopperfilter;
 
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.Hopper;
@@ -53,18 +54,39 @@ public final class FilterManager {
         return items;
     }
 
-    /** Overwrites the items of a mode; an empty list removes them. */
+    /** Overwrites the items of a mode; duplicates are dropped; empty removes them. */
     public void saveFilter(Block block, FilterMode mode, List<ItemStack> items) {
         if (!(block.getState() instanceof TileState tile)) {
             return;
         }
         PersistentDataContainer pdc = tile.getPersistentDataContainer();
         NamespacedKey key = mode == FilterMode.ALLOW ? keyAllow : keyBlock;
-        if (items == null || items.isEmpty()) {
+        boolean matchByType = plugin.getSettings().isMatchByType();
+        List<ItemStack> unique = new ArrayList<>();
+        if (items != null) {
+            for (ItemStack item : items) {
+                if (item == null || item.getType() == Material.AIR) {
+                    continue;
+                }
+                boolean duplicate = false;
+                for (ItemStack stored : unique) {
+                    if (matches(stored, item, matchByType)) {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (!duplicate) {
+                    ItemStack copy = item.clone();
+                    copy.setAmount(1);
+                    unique.add(copy);
+                }
+            }
+        }
+        if (unique.isEmpty()) {
             pdc.remove(key);
         } else {
             List<String> encoded = new ArrayList<>();
-            for (ItemStack item : items) {
+            for (ItemStack item : unique) {
                 encoded.add(Base64.getEncoder().encodeToString(item.serializeAsBytes()));
             }
             pdc.set(key, PersistentDataType.LIST.strings(), encoded);
