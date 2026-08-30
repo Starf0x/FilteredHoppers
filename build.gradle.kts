@@ -3,7 +3,6 @@ plugins {
 }
 
 group = "dev.hopperfilter"
-version = "0.5.0"
 
 repositories {
     mavenCentral()
@@ -20,8 +19,12 @@ java {
     }
 }
 
+tasks.processResources {
+    expand("version" to project.version.toString())
+}
+
 tasks.jar {
     archiveBaseName = "PaperFilteredHoppers"
     archiveClassifier.set("")
-    archiveVersion.set("")
+    archiveVersion.set(project.version.toString())
 }

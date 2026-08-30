@@ -19,7 +19,9 @@ This plugin focuses 100% on **functionality**; for the technical details, look a
 
 ### 1. Opening the filter menu
 
-Walk up to a hopper and **shift-right-click** it (sneak + right-click). The filter menu opens. A normal right-click still opens the regular hopper screen.
+Walk up to a hopper and **shift-right-click** it (sneak + right-click) with an **empty main hand**. The filter menu opens. A normal right-click still opens the regular hopper screen.
+
+> With any item in your main hand, shift-right-clicking keeps its vanilla behaviour: hold a hopper and shift-right-click a hopper to **place** it, instead of opening the filter menu.
 
 ### 2. Reading the menu
 
@@ -139,8 +141,28 @@ Only the config reload has a permission; **every player** can use shift-right-cl
 
 ---
 
+## Building & releasing
+
+Requires **Java 21** and the [GitHub CLI](https://cli.github.com) (authenticated). The version lives in `gradle.properties`; the jar name and `plugin.yml` take it from there.
+
+```bash
+./release.sh            # bumps the patch version (0.5.0 -> 0.5.1) and releases
+./release.sh 0.6.0      # release a specific version instead
+```
+
+Each run creates a **brand-new versioned build** and publishes it:
+
+1. bumps the version in `gradle.properties` (unless you pass one),
+2. builds `build/libs/PaperFilteredHoppers-<version>.jar` with `<version>` embedded in `plugin.yml`,
+3. commits, tags (`v<version>`) and pushes to GitHub,
+4. creates a GitHub release and uploads the versioned jar.
+
+The latest release is always available at [releases/latest](https://github.com/Starf0x/PaperFilteredHoppers/releases/latest).
+
+---
+
 ## Version
 
-**0.5.0** — first public release.
+See [releases](https://github.com/Starf0x/PaperFilteredHoppers/releases) — the version is bumped automatically with every build.
 
 Want to add something or found a bug? Open an issue in this repository.

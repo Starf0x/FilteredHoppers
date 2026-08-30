@@ -19,6 +19,7 @@ import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.inventory.ItemStack;
 
 public final class HopperFilterListener implements Listener {
 
@@ -42,6 +43,13 @@ public final class HopperFilterListener implements Listener {
         }
         Player player = event.getPlayer();
         if (!player.isSneaking()) {
+            return;
+        }
+
+        // The filter menu only opens with an empty hand. With any item in
+        // hand, vanilla behaviour stays intact (e.g. placing a hopper).
+        ItemStack held = event.getItem();
+        if (held != null && held.getType() != Material.AIR) {
             return;
         }
 
