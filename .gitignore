@@ -1,0 +1,13 @@
+# Gradle & Java
+.gradle/
+build/
+target/
+*.class
+
+# IDE's
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/

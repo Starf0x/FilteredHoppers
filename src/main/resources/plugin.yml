@@ -1,0 +1,16 @@
+name: PaperFilteredHoppers
+version: '0.5.0'
+main: dev.hopperfilter.HopperFilterPlugin
+api-version: '1.21'
+description: Filtered hoppers with multiple filter items per hopper
+author: FrankB
+commands:
+  hopperfilter:
+    description: Herlaadt de config van de filterhoppers
+    usage: /hopperfilter reload
+    aliases: [hfilter]
+    permission: hopperfilter.reload
+permissions:
+  hopperfilter.reload:
+    description: Mag de hopper filter config herladen
+    default: op
