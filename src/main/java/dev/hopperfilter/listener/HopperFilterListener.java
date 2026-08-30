@@ -19,6 +19,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -215,5 +216,11 @@ public final class HopperFilterListener implements Listener {
         } else if (event.getInventory().getHolder() instanceof FilterHopperGui hopperGui) {
             hopperGui.commit();
         }
+    }
+
+    /** Re-register the red tint of a newly loaded chunk. */
+    @EventHandler(ignoreCancelled = true)
+    public void onChunkLoad(ChunkLoadEvent event) {
+        plugin.getFilterVisual().rebuildChunk(event.getChunk());
     }
 }

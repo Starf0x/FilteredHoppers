@@ -11,7 +11,7 @@ This plugin focuses 100% on **functionality**; for the technical details, look a
 - **Every hopper can be a filter hopper.** A hopper you never configure behaves exactly like vanilla.
 - **No tools, no extra items.** Everything is done with shift-right-clicks.
 - **Two modes at once per hopper:** an *allow* list (green) and a *block* list (black). The hopper remembers both at the same time and can use them together.
-- **Red frame in the hopper screen.** As soon as a hopper has an active filter, its normal hopper screen shows the 5 slots inside a red frame.
+- **Redstone-red hoppers.** A hopper with an active filter turns redstone red, so you see at a glance which hoppers are active. Its screen also shows the 5 slots inside a red frame.
 
 ---
 
@@ -86,12 +86,12 @@ You can switch this in the config to **exact matching**: then name, lore, and en
 
 ---
 
-## The red frame
+## The red hoppers
 
-As soon as a hopper has an **active filter** (green or black filled), **right-clicking it opens the adapted hopper screen**: the 5 real hopper slots sit inside a **red frame**. When there is no filter, the hopper keeps its plain vanilla screen.
+As soon as a hopper has an **active filter** (green or black filled), it is tinted **redstone red** (a translucent red overlay on the block itself, no particles). The hopper keeps working and can be mined normally. **Right-clicking** it opens the adapted hopper screen: the 5 real hopper slots inside a **red frame**. Without a filter the hopper looks and behaves vanilla.
 
-- Nothing is drawn in the world; only the hopper screen itself carries the red frame.
-- The frame appears and disappears automatically when you save or clear a filter.
+- The tint appears and disappears automatically when you save or clear a filter.
+- Can be switched off in the config (`visual-enabled`).
 
 ---
 
@@ -107,6 +107,7 @@ All settings live in `config.yml` in the plugin folder. After a change, reload w
 |---------|---------|---------|
 | `gui-title` | `&0Hopper Filter` | Title of the filter menu (colour codes with `&` are allowed). |
 | `match-by-type` | `true` | `true` = filter on item type; `false` = exact item matching (name/lore/enchantments). |
+| `visual-enabled` | `true` | Tints hoppers with an active filter redstone red (`true`/`false`). |
 
 ---
 

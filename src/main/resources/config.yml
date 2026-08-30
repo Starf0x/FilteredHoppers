@@ -16,3 +16,6 @@ gui-title: "&0Hopper Filter"
 # Whether the filter matches only the item type (true), or also
 # name/lore/enchantments (false = exact item comparison)?
 match-by-type: true
+
+# Visual hint: hoppers with an active filter get a redstone-red tint.
+visual-enabled: true
