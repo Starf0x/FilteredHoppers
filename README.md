@@ -1,4 +1,4 @@
-# Paper Filtered Hoppers
+# FilteredHoppers
 
 A plugin for [Paper](https://papermc.io) (Minecraft **1.21.x**) that turns **every hopper** into a smart filter hopper. You configure per hopper which items it lets through or blocks, so you can build your own sorting setups without any redstone headaches.
 
@@ -25,19 +25,19 @@ Walk up to a hopper and **shift-right-click** it (sneak + right-click) with an *
 
 ### 2. Reading the menu
 
-The menu has **9 slots**:
+The menu has **two rows (18 slots)**:
 
 | Slot | Meaning |
 |------|---------|
-| **Slot 1** | The mode indicator. **Green emerald** = *allow* (green mode). **Black blackstone** = *block* (black mode). |
-| **Slot 2 through 9** | The filter items of the currently displayed mode (max 8 items per mode). |
+| **Slot 0** | The mode indicator. **Green emerald** = *allow* (green mode). **Black blackstone** = *block* (black mode). |
+| **Slot 1-17** | The filter items of the currently displayed mode (max 17 items per mode). |
 
 The name and description of the indicator always tell you which mode you are editing.
 
 ### 3. Adding filter items
 
 - Make sure the menu is on the mode you want (see point 4).
-- **Click the item you want to filter from your own inventory into an empty slot**.
+- **Click the items you want to filter from your own inventory into the slots**. Each slot holds a single item (stack of 1).
 - Close the screen to save. The hopper knows immediately.
 
 ### 4. Switching between the modes
@@ -117,7 +117,7 @@ All settings live in `config.yml` in the plugin folder. After a change, reload w
 
 1. Use a **Paper** server of **1.21.x** (the plugin does not work on Spigot).
 2. Make sure **Java 21** is installed.
-3. Copy `PaperFilteredHoppers.jar` into your server's `plugins/` folder.
+3. Copy `FilteredHoppers.jar` into your server's `plugins/` folder.
 4. Restart the server (or use a plugin manager such as PlugMan).
 5. You're done: shift-right-click a hopper and set up your filter.
 
@@ -135,7 +135,7 @@ Only the config reload has a permission; **every player** can use shift-right-cl
 
 ## Known limitations
 
-- One hopper can hold at most **8 items per mode** (so 8 green + 8 black).
+- One hopper holds at most **1 item per mode** (so 1 green + 1 black).
 - The filter is tied to the **block**, not to a player: anyone with access to the hopper can set filters on it.
 - Removed filter hoppers lose their filter (the block is gone).
 
@@ -143,26 +143,27 @@ Only the config reload has a permission; **every player** can use shift-right-cl
 
 ## Building & releasing
 
-Requires **Java 21** and the [GitHub CLI](https://cli.github.com) (authenticated). The version lives in `gradle.properties`; the jar name and `plugin.yml` take it from there.
+Requires **Java 21** and the [GitHub CLI](https://cli.github.com) (authenticated). The version lives in `gradle.properties`; the jar name and `plugin.yml` take it from there. **Every rebuild automatically bumps to a newer version.**
 
 ```bash
-./release.sh            # bumps the patch version (0.5.0 -> 0.5.1) and releases
+./gradlew build         # bumps the patch version and builds the new jar
+./release.sh            # bumps, builds AND publishes a GitHub release
 ./release.sh 0.6.0      # release a specific version instead
 ```
 
-Each run creates a **brand-new versioned build** and publishes it:
+Each release run:
 
-1. bumps the version in `gradle.properties` (unless you pass one),
-2. builds `build/libs/PaperFilteredHoppers-<version>.jar` with `<version>` embedded in `plugin.yml`,
+1. bumps the patch version in `gradle.properties` (unless you pass one),
+2. builds `build/libs/FilteredHoppers-<version>.jar` with `<version>` embedded in `plugin.yml`,
 3. commits, tags (`v<version>`) and pushes to GitHub,
 4. creates a GitHub release and uploads the versioned jar.
 
-The latest release is always available at [releases/latest](https://github.com/Starf0x/PaperFilteredHoppers/releases/latest).
+The latest release is always available at [releases/latest](https://github.com/Starf0x/FilteredHoppers/releases/latest).
 
 ---
 
 ## Version
 
-See [releases](https://github.com/Starf0x/PaperFilteredHoppers/releases) — the version is bumped automatically with every build.
+See [releases](https://github.com/Starf0x/FilteredHoppers/releases) — the version is bumped automatically with every build.
 
 Want to add something or found a bug? Open an issue in this repository.

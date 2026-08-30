@@ -118,24 +118,32 @@ public final class FilterVisual {
         double x = block.getX();
         double y = block.getY();
         double z = block.getZ();
-        double[] c = {0.0, 1.0};
-        for (double dx : c) {
-            for (double dy : c) {
-                for (double dz : c) {
-                    spawn(world, x + dx, y + dy, z + dz);
-                }
+        double[] s = {0.0, 1.0};
+        // 4 edges parallel to X
+        for (double c1 : s) {
+            for (double c2 : s) {
+                line(world, x, y + c1, z + c2, 1.0, 0.0, 0.0);
             }
         }
-        for (double a : c) {
-            for (double b : c) {
-                spawn(world, x + 0.5, y + a, z + b);
-                spawn(world, x + a, y + 0.5, z + b);
-                spawn(world, x + a, y + b, z + 0.5);
+        // 4 edges parallel to Y
+        for (double c1 : s) {
+            for (double c2 : s) {
+                line(world, x + c1, y, z + c2, 0.0, 1.0, 0.0);
+            }
+        }
+        // 4 edges parallel to Z
+        for (double c1 : s) {
+            for (double c2 : s) {
+                line(world, x + c1, y + c2, z, 0.0, 0.0, 1.0);
             }
         }
     }
 
-    private void spawn(World world, double x, double y, double z) {
-        world.spawnParticle(Particle.DUST, x, y, z, 1, RED);
+    /** Draws a continuous, solid red line of dust particles along an edge. */
+    private void line(World world, double x, double y, double z, double dx, double dy, double dz) {
+        for (double t = 0.0; t <= 1.0; t += 0.125) {
+            double a = Math.min(t, 1.0);
+            world.spawnParticle(Particle.DUST, x + dx * a, y + dy * a, z + dz * a, 1, RED);
+        }
     }
 }

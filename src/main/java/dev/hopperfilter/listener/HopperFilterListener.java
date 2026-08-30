@@ -55,26 +55,29 @@ public final class HopperFilterListener implements Listener {
 
         event.setCancelled(true);
         player.openInventory(new FilterGui(plugin, block).getInventory());
-        player.sendMessage(Text.colorize("&7Green = allow, black = block. Click the item to filter into a slot and close to save."));
+        player.sendMessage(Text.colorize("&7Green = allow, black = block. Click the items to filter into the slots and close to save."));
     }
 
-    /** Only the emerald/blackstone on slot 0 may switch; the rest is the menu. */
+    /** Slot 0 toggles the mode; slots 1-17 freely hold the filter items. */
     @EventHandler(ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getInventory().getHolder() instanceof FilterGui gui)) {
             return;
         }
-        if (event.getRawSlot() != FilterGui.TOGGLE_SLOT) {
+        int raw = event.getRawSlot();
+        if (raw >= gui.getInventory().getSize()) {
             return;
         }
-        event.setCancelled(true);
-        ClickType click = event.getClick();
-        if (click == ClickType.LEFT || click == ClickType.RIGHT) {
-            gui.toggleMode();
+        if (raw == FilterGui.TOGGLE_SLOT) {
+            event.setCancelled(true);
+            ClickType click = event.getClick();
+            if (click == ClickType.LEFT || click == ClickType.RIGHT) {
+                gui.toggleMode();
+            }
         }
     }
 
-    /** Prevent dragging items onto the emerald/blackstone. */
+    /** Prevent dragging items onto the mode indicator. */
     @EventHandler(ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getInventory().getHolder() instanceof FilterGui)) {

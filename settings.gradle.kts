@@ -1,1 +1,1 @@
-rootProject.name = "PaperFilteredHoppers"
+rootProject.name = "FilteredHoppers"

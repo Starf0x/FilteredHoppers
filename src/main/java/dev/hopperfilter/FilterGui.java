@@ -13,16 +13,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 9-slot filter menu: slot 0 is a green emerald (allow) that switches to a
- * black blackstone (block) on click. Slots 1-8 hold the items of that mode.
- * Both modes stay on the hopper at the same time.
+ * Two-row (18-slot) filter menu: slot 0 is a green emerald (allow) that
+ * switches to a black blackstone (block) on click. Slots 1-17 hold the items
+ * of that mode (each slot holds a single item). Both modes stay on the hopper
+ * at the same time.
  */
 public final class FilterGui implements InventoryHolder {
 
     public static final int TOGGLE_SLOT = 0;
     public static final int FIRST_SLOT = 1;
-    public static final int ITEM_SLOTS = 8;
-    public static final int GUI_SIZE = 9;
+    public static final int ITEM_SLOTS = 17;
+    public static final int GUI_SIZE = 18;
 
     private final HopperFilterPlugin plugin;
     private final Block block;
@@ -38,7 +39,7 @@ public final class FilterGui implements InventoryHolder {
         refresh();
     }
 
-    /** Fills slot 0 (mode indicator) and slots 1-8 (items of the mode). */
+    /** Fills slot 0 (mode indicator) and slots 1-17 (items of the mode). */
     public void refresh() {
         inventory.clear();
         inventory.setItem(TOGGLE_SLOT, createModeItem());
@@ -72,7 +73,7 @@ public final class FilterGui implements InventoryHolder {
 
     private void saveCurrentMode() {
         List<ItemStack> items = new ArrayList<>();
-        for (int i = FIRST_SLOT; i < GUI_SIZE; i++) {
+        for (int i = FIRST_SLOT; i < FIRST_SLOT + ITEM_SLOTS; i++) {
             ItemStack item = inventory.getItem(i);
             if (item != null && item.getType() != Material.AIR) {
                 ItemStack toStore = item.clone();
