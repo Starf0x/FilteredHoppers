@@ -19,6 +19,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public final class HopperFilterListener implements Listener {
@@ -67,26 +68,42 @@ public final class HopperFilterListener implements Listener {
         player.sendMessage(Text.colorize("&7Green = allow, black = block. Click the items to filter into the slots and close to save."));
     }
 
-    /** Slot 0 toggles the mode; slots 1-17 freely hold the filter items. */
+    /** Slot 0 toggles the mode; slots 1-17 hold the filter items. Additions
+     *  that would create a duplicate item are rejected on the spot. */
     @EventHandler(ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getInventory().getHolder() instanceof FilterGui gui)) {
             return;
         }
+        ClickType click = event.getClick();
         int raw = event.getRawSlot();
-        if (raw >= gui.getInventory().getSize()) {
-            return;
-        }
         if (raw == FilterGui.TOGGLE_SLOT) {
             event.setCancelled(true);
-            ClickType click = event.getClick();
             if (click == ClickType.LEFT || click == ClickType.RIGHT) {
                 gui.toggleMode();
+            }
+            return;
+        }
+        if (raw >= gui.getInventory().getSize()) {
+            // Player inventory: shift- or number-click moves an item into the filter.
+            boolean movesIn = event.isShiftClick() || click == ClickType.NUMBER_KEY;
+            if (movesIn && hasItem(event.getCurrentItem())
+                    && isDuplicateInFilter(gui.getInventory(), event.getCurrentItem(), -1)) {
+                event.setCancelled(true);
+            }
+            return;
+        }
+        if (raw >= FilterGui.FIRST_SLOT && raw < FilterGui.FIRST_SLOT + FilterGui.ITEM_SLOTS) {
+            ItemStack incoming = click == ClickType.NUMBER_KEY
+                    ? event.getView().getBottomInventory().getItem(event.getHotbarButton())
+                    : event.getCursor();
+            if (hasItem(incoming) && isDuplicateInFilter(gui.getInventory(), incoming, raw)) {
+                event.setCancelled(true);
             }
         }
     }
 
-    /** Prevent dragging items onto the mode indicator. */
+    /** Prevent dragging items onto the mode indicator or into duplicates. */
     @EventHandler(ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getInventory().getHolder() instanceof FilterGui)) {
@@ -94,7 +111,57 @@ public final class HopperFilterListener implements Listener {
         }
         if (event.getRawSlots().contains(FilterGui.TOGGLE_SLOT)) {
             event.setCancelled(true);
+            return;
         }
+        ItemStack dragged = event.getOldCursor();
+        if (!hasItem(dragged)) {
+            return;
+        }
+        Inventory inv = event.getInventory();
+        int emptyTargets = 0;
+        for (int slot : event.getRawSlots()) {
+            if (slot >= FilterGui.FIRST_SLOT && slot < FilterGui.FIRST_SLOT + FilterGui.ITEM_SLOTS
+                    && !hasItem(inv.getItem(slot))) {
+                emptyTargets++;
+            }
+        }
+        // Dropping one stack over multiple slots would duplicate the item.
+        if (emptyTargets > 1) {
+            event.setCancelled(true);
+            return;
+        }
+        for (int i = FilterGui.FIRST_SLOT; i < FilterGui.FIRST_SLOT + FilterGui.ITEM_SLOTS; i++) {
+            if (event.getRawSlots().contains(i)) {
+                continue;
+            }
+            if (matches(inv.getItem(i), dragged)) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+    }
+
+    private boolean hasItem(ItemStack item) {
+        return item != null && item.getType() != Material.AIR;
+    }
+
+    private boolean matches(ItemStack a, ItemStack b) {
+        if (!hasItem(a) || !hasItem(b)) {
+            return false;
+        }
+        return plugin.getSettings().isMatchByType() ? a.getType() == b.getType() : a.isSimilar(b);
+    }
+
+    private boolean isDuplicateInFilter(Inventory inv, ItemStack item, int exceptSlot) {
+        for (int i = FilterGui.FIRST_SLOT; i < FilterGui.FIRST_SLOT + FilterGui.ITEM_SLOTS; i++) {
+            if (i == exceptSlot) {
+                continue;
+            }
+            if (matches(inv.getItem(i), item)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** The red frame of the hopper screen cannot be touched. */
