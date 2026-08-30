@@ -92,7 +92,6 @@ public final class FilterManager {
             pdc.set(key, PersistentDataType.LIST.strings(), encoded);
         }
         tile.update();
-        plugin.getFilterVisual().update(block);
     }
 
     /** Removes both filter lists: the hopper becomes 'normal' again. */
@@ -105,7 +104,6 @@ public final class FilterManager {
         pdc.remove(keyBlock);
         pdc.remove(keyMode);
         tile.update();
-        plugin.getFilterVisual().update(block);
     }
 
     /** Does this hopper have an active filter (one of the lists filled)? */

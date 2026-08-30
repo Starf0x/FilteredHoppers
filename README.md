@@ -11,7 +11,7 @@ This plugin focuses 100% on **functionality**; for the technical details, look a
 - **Every hopper can be a filter hopper.** A hopper you never configure behaves exactly like vanilla.
 - **No tools, no extra items.** Everything is done with shift-right-clicks.
 - **Two modes at once per hopper:** an *allow* list (green) and a *block* list (black). The hopper remembers both at the same time and can use them together.
-- **Red rim** around filter hoppers, so you can see at a glance which hoppers are active.
+- **Red frame in the hopper screen.** As soon as a hopper has an active filter, its normal hopper screen shows the 5 slots inside a red frame.
 
 ---
 
@@ -19,7 +19,7 @@ This plugin focuses 100% on **functionality**; for the technical details, look a
 
 ### 1. Opening the filter menu
 
-Walk up to a hopper and **shift-right-click** it (sneak + right-click) with an **empty main hand**. The filter menu opens. A normal right-click still opens the regular hopper screen.
+Walk up to a hopper and **shift-right-click** it (sneak + right-click) with an **empty main hand**. The filter menu opens. A normal right-click opens the hopper screen — with its **red frame** when the hopper has an active filter.
 
 > With any item in your main hand, shift-right-clicking keeps its vanilla behaviour: hold a hopper and shift-right-click a hopper to **place** it, instead of opening the filter menu.
 
@@ -86,13 +86,12 @@ You can switch this in the config to **exact matching**: then name, lore, and en
 
 ---
 
-## The red rim
+## The red frame
 
-As soon as a hopper has an **active filter** (green or black filled), a **red square rim** is drawn around the **top edges** of the block. You see in one glance which hoppers are doing something special.
+As soon as a hopper has an **active filter** (green or black filled), **right-clicking it opens the adapted hopper screen**: the 5 real hopper slots sit inside a **red frame**. When there is no filter, the hopper keeps its plain vanilla screen.
 
-- No particles: the rim is a real red square border on the hopper's top.
-- The rim appears and disappears on its own when you save or clear a filter.
-- The rim hides beyond ~16 blocks and never shows in unloaded areas, so it costs almost nothing.
+- Nothing is drawn in the world; only the hopper screen itself carries the red frame.
+- The frame appears and disappears automatically when you save or clear a filter.
 
 ---
 
@@ -108,7 +107,6 @@ All settings live in `config.yml` in the plugin folder. After a change, reload w
 |---------|---------|---------|
 | `gui-title` | `&0Hopper Filter` | Title of the filter menu (colour codes with `&` are allowed). |
 | `match-by-type` | `true` | `true` = filter on item type; `false` = exact item matching (name/lore/enchantments). |
-| `visual-enabled` | `true` | Shows the red rim around filter hoppers (`true`/`false`). |
 
 ---
 

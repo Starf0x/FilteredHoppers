@@ -12,7 +12,6 @@ public final class HopperFilterPlugin extends JavaPlugin {
 
     private Settings settings;
     private FilterManager filterManager;
-    private FilterVisual filterVisual;
 
     @Override
     public void onEnable() {
@@ -20,8 +19,6 @@ public final class HopperFilterPlugin extends JavaPlugin {
         saveDefaultConfig();
         settings = new Settings(this);
         filterManager = new FilterManager(this);
-        filterVisual = new FilterVisual(this);
-        filterVisual.start();
 
         getCommand("hopperfilter").setExecutor(new HopperFilterCommand(this));
         getServer().getPluginManager().registerEvents(new HopperFilterListener(this), this);
@@ -31,9 +28,6 @@ public final class HopperFilterPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (filterVisual != null) {
-            filterVisual.stop();
-        }
         instance = null;
     }
 
@@ -47,9 +41,5 @@ public final class HopperFilterPlugin extends JavaPlugin {
 
     public FilterManager getFilterManager() {
         return filterManager;
-    }
-
-    public FilterVisual getFilterVisual() {
-        return filterVisual;
     }
 }

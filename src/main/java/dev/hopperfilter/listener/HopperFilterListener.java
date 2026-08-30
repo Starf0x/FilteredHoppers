@@ -1,6 +1,7 @@
 package dev.hopperfilter.listener;
 
 import dev.hopperfilter.FilterGui;
+import dev.hopperfilter.FilterHopperGui;
 import dev.hopperfilter.FilterManager;
 import dev.hopperfilter.HopperFilterPlugin;
 import dev.hopperfilter.util.Text;
@@ -18,7 +19,6 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.ItemStack;
 
 public final class HopperFilterListener implements Listener {
@@ -31,7 +31,8 @@ public final class HopperFilterListener implements Listener {
         this.manager = plugin.getFilterManager();
     }
 
-    /** Every hopper is a filter hopper: shift-right-click opens the filter menu. */
+    /** Shift-right-click opens the filter menu; a normal right-click on an
+     *  active filter hopper opens the hopper screen with the red frame. */
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
@@ -43,11 +44,19 @@ public final class HopperFilterListener implements Listener {
         }
         Player player = event.getPlayer();
         if (!player.isSneaking()) {
+            // Normal open: active filter hoppers get the red-framed screen.
+            if (manager.isFilterHopper(block)) {
+                ItemStack held = event.getItem();
+                if (held == null || held.getType() == Material.AIR || !held.getType().isBlock()) {
+                    event.setCancelled(true);
+                    player.openInventory(new FilterHopperGui(plugin, block).getInventory());
+                }
+            }
             return;
         }
 
-        // The filter menu only opens with an empty hand. With any item in
-        // hand, vanilla behaviour stays intact (e.g. placing a hopper).
+        // Shift-right-click opens the filter menu, but only with an empty
+        // hand. With any item in hand vanilla behaviour stays intact.
         ItemStack held = event.getItem();
         if (held != null && held.getType() != Material.AIR) {
             return;
@@ -88,6 +97,31 @@ public final class HopperFilterListener implements Listener {
         }
     }
 
+    /** The red frame of the hopper screen cannot be touched. */
+    @EventHandler(ignoreCancelled = true)
+    public void onFrameClick(InventoryClickEvent event) {
+        if (!(event.getInventory().getHolder() instanceof FilterHopperGui gui)) {
+            return;
+        }
+        int raw = event.getRawSlot();
+        if (raw < gui.getInventory().getSize() && gui.isDecoration(raw)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onFrameDrag(InventoryDragEvent event) {
+        if (!(event.getInventory().getHolder() instanceof FilterHopperGui gui)) {
+            return;
+        }
+        for (int slot : event.getRawSlots()) {
+            if (gui.isDecoration(slot)) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+    }
+
     /** Only allow ground pickups that pass the filter. */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPickup(InventoryPickupItemEvent event) {
@@ -106,17 +140,13 @@ public final class HopperFilterListener implements Listener {
         }
     }
 
-    /** Closing the GUI saves the displayed mode. */
+    /** Closing a GUI saves the displayed mode / merges items back. */
     @EventHandler
     public void onGUIClose(InventoryCloseEvent event) {
         if (event.getInventory().getHolder() instanceof FilterGui gui) {
             gui.commit();
+        } else if (event.getInventory().getHolder() instanceof FilterHopperGui hopperGui) {
+            hopperGui.commit();
         }
-    }
-
-    /** Re-register filter hoppers of a newly loaded chunk for the red rim. */
-    @EventHandler(ignoreCancelled = true)
-    public void onChunkLoad(ChunkLoadEvent event) {
-        plugin.getFilterVisual().rebuildChunk(event.getChunk());
     }
 }

@@ -19,8 +19,6 @@ public final class HopperFilterCommand implements CommandExecutor {
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             plugin.reloadConfig();
             plugin.getSettings().reload();
-            plugin.getFilterVisual().stop();
-            plugin.getFilterVisual().start();
             sender.sendMessage(Text.colorize("&aConfig reloaded."));
             return true;
         }
