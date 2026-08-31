@@ -3,6 +3,7 @@ package dev.hopperfilter.listener;
 import dev.hopperfilter.FilterGui;
 import dev.hopperfilter.FilterHopperGui;
 import dev.hopperfilter.FilterManager;
+import dev.hopperfilter.FilterMode;
 import dev.hopperfilter.HopperFilterPlugin;
 import dev.hopperfilter.util.Text;
 import org.bukkit.Material;
@@ -12,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -22,6 +24,9 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public final class HopperFilterListener implements Listener {
 
@@ -69,15 +74,19 @@ public final class HopperFilterListener implements Listener {
         player.sendMessage(Text.colorize("&7Green = allow, black = block. Click the items to filter into the slots and close to save."));
     }
 
-    /** Slot 0 toggles the mode; slots 1-17 hold the filter items. Additions
-     *  that would create a duplicate item are rejected on the spot. */
+    /** Slot 0 toggles the mode; slots 1-17 hold the filter items. A filter
+     *  slot never holds more than one item and never a duplicate: shift-clicks,
+     *  number-key moves and drags over a stack are turned into a single-item
+     *  placement, and anything that would stack or duplicate is rejected. */
     @EventHandler(ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getInventory().getHolder() instanceof FilterGui gui)) {
             return;
         }
+        Inventory inv = gui.getInventory();
         ClickType click = event.getClick();
         int raw = event.getRawSlot();
+
         if (raw == FilterGui.TOGGLE_SLOT) {
             event.setCancelled(true);
             if (click == ClickType.LEFT || click == ClickType.RIGHT) {
@@ -85,31 +94,81 @@ public final class HopperFilterListener implements Listener {
             }
             return;
         }
-        if (raw >= gui.getInventory().getSize()) {
-            // Player inventory: shift- or number-click moves an item into the filter.
-            boolean movesIn = event.isShiftClick() || click == ClickType.NUMBER_KEY;
-            if (movesIn && hasItem(event.getCurrentItem())
-                    && isDuplicateInFilter(gui.getInventory(), event.getCurrentItem(), -1)) {
+
+        if (raw >= inv.getSize()) {
+            // Player inventory area: shift-clicking moves exactly one item in.
+            if (!event.isShiftClick() || !hasItem(event.getCurrentItem())) {
+                return;
+            }
+            ItemStack source = event.getCurrentItem();
+            int slot = firstEmptyFilterSlot(inv);
+            if (slot == -1 || isDuplicateInFilter(inv, source, -1)) {
+                event.setCancelled(true);
+                return;
+            }
+            event.setCancelled(true);
+            inv.setItem(slot, single(source));
+            event.setCurrentItem(shrink(source, 1));
+            return;
+        }
+
+        if (raw < FilterGui.FIRST_SLOT || raw >= FilterGui.FIRST_SLOT + FilterGui.ITEM_SLOTS) {
+            return;
+        }
+
+        // A filter slot was clicked.
+        ItemStack current = event.getCurrentItem();
+        boolean occupied = hasItem(current);
+        if (event.isShiftClick()) {
+            return; // shift-clicking the single filter item takes it out.
+        }
+
+        if (click == ClickType.NUMBER_KEY) {
+            ItemStack hotbar = event.getView().getBottomInventory().getItem(event.getHotbarButton());
+            if (hasItem(hotbar)) {
+                event.setCancelled(true);
+                if (occupied || isDuplicateInFilter(inv, hotbar, raw)) {
+                    return;
+                }
+                inv.setItem(raw, single(hotbar));
+                event.getView().getBottomInventory().setItem(event.getHotbarButton(), shrink(hotbar, 1));
+            }
+            return;
+        }
+
+        ItemStack cursor = event.getCursor();
+        if (!hasItem(cursor)) {
+            return; // picking the filter item up with an empty cursor.
+        }
+        if (isDuplicateInFilter(inv, cursor, raw)) {
+            event.setCancelled(true);
+            return;
+        }
+        if (occupied) {
+            // No stacking on top of the single filter item; only a clean
+            // one-for-one swap with a single item passes.
+            if (matches(current, cursor) || cursor.getAmount() > 1) {
                 event.setCancelled(true);
             }
             return;
         }
-        if (raw >= FilterGui.FIRST_SLOT && raw < FilterGui.FIRST_SLOT + FilterGui.ITEM_SLOTS) {
-            ItemStack incoming = click == ClickType.NUMBER_KEY
-                    ? event.getView().getBottomInventory().getItem(event.getHotbarButton())
-                    : event.getCursor();
-            if (hasItem(incoming) && isDuplicateInFilter(gui.getInventory(), incoming, raw)) {
-                event.setCancelled(true);
-            }
+        if (click == ClickType.LEFT && cursor.getAmount() > 1) {
+            // Left-clicking a whole stack into an empty slot: keep one.
+            event.setCancelled(true);
+            inv.setItem(raw, single(cursor));
+            event.getView().setCursor(shrink(cursor, 1));
         }
     }
 
-    /** Prevent dragging items onto the mode indicator or into duplicates. */
+    /** Prevent dragging onto the mode indicator, into occupied filter slots or
+     *  into more than one empty filter slot; a drag onto a single empty slot
+     *  is turned into a single-item placement. */
     @EventHandler(ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent event) {
-        if (!(event.getInventory().getHolder() instanceof FilterGui)) {
+        if (!(event.getInventory().getHolder() instanceof FilterGui gui)) {
             return;
         }
+        Inventory inv = gui.getInventory();
         if (event.getRawSlots().contains(FilterGui.TOGGLE_SLOT)) {
             event.setCancelled(true);
             return;
@@ -118,21 +177,22 @@ public final class HopperFilterListener implements Listener {
         if (!hasItem(dragged)) {
             return;
         }
-        Inventory inv = event.getInventory();
-        int emptyTargets = 0;
+        int target = -1;
         for (int slot : event.getRawSlots()) {
-            if (slot >= FilterGui.FIRST_SLOT && slot < FilterGui.FIRST_SLOT + FilterGui.ITEM_SLOTS
-                    && !hasItem(inv.getItem(slot))) {
-                emptyTargets++;
+            if (slot >= FilterGui.FIRST_SLOT && slot < FilterGui.FIRST_SLOT + FilterGui.ITEM_SLOTS) {
+                if (hasItem(inv.getItem(slot))) {
+                    event.setCancelled(true);
+                    return;
+                }
+                if (target != -1) {
+                    event.setCancelled(true);
+                    return;
+                }
+                target = slot;
             }
         }
-        // Dropping one stack over multiple slots would duplicate the item.
-        if (emptyTargets > 1) {
-            event.setCancelled(true);
-            return;
-        }
         for (int i = FilterGui.FIRST_SLOT; i < FilterGui.FIRST_SLOT + FilterGui.ITEM_SLOTS; i++) {
-            if (event.getRawSlots().contains(i)) {
+            if (i == target || event.getRawSlots().contains(i)) {
                 continue;
             }
             if (matches(inv.getItem(i), dragged)) {
@@ -140,10 +200,40 @@ public final class HopperFilterListener implements Listener {
                 return;
             }
         }
+        if (target != -1) {
+            event.setCancelled(true);
+            inv.setItem(target, single(dragged));
+            event.getView().setCursor(shrink(dragged, 1));
+        }
     }
 
     private boolean hasItem(ItemStack item) {
         return item != null && item.getType() != Material.AIR;
+    }
+
+    private ItemStack single(ItemStack item) {
+        ItemStack one = item.clone();
+        one.setAmount(1);
+        return one;
+    }
+
+    private ItemStack shrink(ItemStack item, int by) {
+        int remaining = item.getAmount() - by;
+        if (remaining <= 0) {
+            return null;
+        }
+        ItemStack rest = item.clone();
+        rest.setAmount(remaining);
+        return rest;
+    }
+
+    private int firstEmptyFilterSlot(Inventory inv) {
+        for (int i = FilterGui.FIRST_SLOT; i < FilterGui.FIRST_SLOT + FilterGui.ITEM_SLOTS; i++) {
+            if (!hasItem(inv.getItem(i))) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private boolean matches(ItemStack a, ItemStack b) {
@@ -222,5 +312,24 @@ public final class HopperFilterListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onChunkLoad(ChunkLoadEvent event) {
         plugin.getFilterVisual().rebuildChunk(event.getChunk());
+    }
+
+    /** A broken hopper drops every filter item it held. */
+    @EventHandler(ignoreCancelled = true)
+    public void onHopperBreak(BlockBreakEvent event) {
+        Block block = event.getBlock();
+        if (block.getType() != Material.HOPPER) {
+            return;
+        }
+        List<ItemStack> items = new ArrayList<>();
+        items.addAll(manager.getItems(block, FilterMode.ALLOW));
+        items.addAll(manager.getItems(block, FilterMode.BLOCK));
+        if (items.isEmpty()) {
+            return;
+        }
+        for (ItemStack item : items) {
+            block.getWorld().dropItemNaturally(block.getLocation(), item);
+        }
+        manager.clearFilter(block);
     }
 }
