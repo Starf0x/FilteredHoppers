@@ -27,12 +27,12 @@ public final class FilterVisual {
 
     private static final float VIEW_RANGE = 1.0f;
     private static final long CLEANUP_PERIOD = 20L;
-    // A thin red glass layer, exactly the size of the hopper block, pushed
-    // halfway into the hopper: one texture-pixel thick, centered on the block
-    // so it shows through the funnel from above without z-fighting.
+    // A thin red glass plate, exactly the size of the hopper block, resting on
+    // the top edge: half of its thickness is pressed into the hopper, half
+    // sticks out above it, so it never z-fights.
     private static final float PX = 1f / 16f;
     private static final Vector3f SCALE = new Vector3f(1f, PX, 1f);
-    private static final Vector3f TRANSLATION = new Vector3f(0f, 0.5f, 0f);
+    private static final Vector3f TRANSLATION = new Vector3f(0f, 1f - PX / 2f, 0f);
 
     private final HopperFilterPlugin plugin;
     private final Map<Location, BlockDisplay> overlays = new ConcurrentHashMap<>();
