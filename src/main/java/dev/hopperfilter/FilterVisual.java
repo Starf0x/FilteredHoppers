@@ -27,11 +27,11 @@ public final class FilterVisual {
 
     private static final float VIEW_RANGE = 1.0f;
     private static final long CLEANUP_PERIOD = 20L;
-    // A thin red cap on top of the hopper: one texture-pixel thick, growing
-    // 1px beyond each horizontal side, resting just above the top face so it
-    // never z-fights. Visible from above, a hairline red edge from the sides.
+    // A thin red cap exactly the size of the hopper block: one texture-pixel
+    // thick, resting just above the top face so it never z-fights. Visible
+    // from above, a hairline red edge from the sides.
     private static final float PX = 1f / 16f;
-    private static final Vector3f SCALE = new Vector3f(1f + 2 * PX, PX, 1f + 2 * PX);
+    private static final Vector3f SCALE = new Vector3f(1f, PX, 1f);
     private static final Vector3f TRANSLATION = new Vector3f(0f, 1f, 0f);
 
     private final HopperFilterPlugin plugin;
