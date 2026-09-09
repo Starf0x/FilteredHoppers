@@ -280,20 +280,27 @@ public final class HopperFilterListener implements Listener {
         }
     }
 
-    /** Only allow ground pickups that pass the filter. */
+    /** Only allow ground pickups that pass the filter. Normal hoppers are
+     *  left completely untouched for speed. */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPickup(InventoryPickupItemEvent event) {
         Block block = manager.getHopperBlock(event.getInventory());
-        if (block != null && !manager.isAllowed(block, event.getItem().getItemStack())) {
+        if (block == null || !manager.isFilterHopper(block)) {
+            return;
+        }
+        if (!manager.isAllowed(block, event.getItem().getItemStack())) {
             event.setCancelled(true);
         }
     }
 
-    /** Filter container-to-hopper transfers. */
+    /** Filter container-to-hopper transfers; normal hoppers pass untouched. */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryMove(InventoryMoveItemEvent event) {
         Block block = manager.getHopperBlock(event.getDestination());
-        if (block != null && !manager.isAllowed(block, event.getItem())) {
+        if (block == null || !manager.isFilterHopper(block)) {
+            return;
+        }
+        if (!manager.isAllowed(block, event.getItem())) {
             event.setCancelled(true);
         }
     }
@@ -324,12 +331,12 @@ public final class HopperFilterListener implements Listener {
         List<ItemStack> items = new ArrayList<>();
         items.addAll(manager.getItems(block, FilterMode.ALLOW));
         items.addAll(manager.getItems(block, FilterMode.BLOCK));
+        manager.clearFilter(block);
         if (items.isEmpty()) {
             return;
         }
         for (ItemStack item : items) {
             block.getWorld().dropItemNaturally(block.getLocation(), item);
         }
-        manager.clearFilter(block);
     }
 }
