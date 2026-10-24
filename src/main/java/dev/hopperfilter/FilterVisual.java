@@ -9,6 +9,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Hopper;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
 import org.joml.Quaternionf;
@@ -71,7 +72,7 @@ public final class FilterVisual {
     public void update(Block block) {
         Location loc = block.getLocation();
         if (plugin.getSettings().isVisualEnabled() && plugin.getFilterManager().isFilterHopper(block)) {
-            if (!overlays.containsKey(loc)) {
+            if (!hasOverlay(loc)) {
                 spawnOverlay(block);
             }
         } else {
@@ -81,6 +82,9 @@ public final class FilterVisual {
 
     /** Restores the tints of a newly loaded chunk; existing overlays live on. */
     public void rebuildChunk(Chunk chunk) {
+        if (chunk.isEntitiesLoaded()) {
+            removeStale(java.util.Arrays.asList(chunk.getEntities()));
+        }
         if (!plugin.getSettings().isVisualEnabled()) {
             return;
         }
@@ -88,11 +92,41 @@ public final class FilterVisual {
             if (state instanceof Hopper hopper) {
                 Block block = hopper.getBlock();
                 Location loc = block.getLocation();
-                if (!overlays.containsKey(loc) && plugin.getFilterManager().isFilterHopper(block)) {
+                if (!hasOverlay(loc) && plugin.getFilterManager().isFilterHopper(block)) {
                     spawnOverlay(block);
                 }
             }
         }
+    }
+
+    /**
+     * Removes red caps that are not tracked by this run, e.g. ones saved to disk
+     * by older versions (which made them persistent) or left behind by a crash.
+     */
+    public void removeStale(Iterable<? extends Entity> entities) {
+        for (Entity entity : entities) {
+            if (entity instanceof BlockDisplay display && isCap(display)
+                    && overlays.get(display.getLocation().getBlock().getLocation()) != display) {
+                display.remove();
+            }
+        }
+    }
+
+    private static boolean isCap(BlockDisplay display) {
+        Transformation t = display.getTransformation();
+        return display.getBlock().getMaterial() == Material.RED_STAINED_GLASS
+                && t.getScale().equals(SCALE, 1e-4f) && t.getTranslation().equals(TRANSLATION, 1e-4f);
+    }
+
+    /** A tracked cap whose entity was unloaded with its chunk no longer counts. */
+    private boolean hasOverlay(Location loc) {
+        BlockDisplay display = overlays.get(loc);
+        if (display != null && !display.isValid()) {
+            overlays.remove(loc);
+            display.remove();
+            return false;
+        }
+        return display != null;
     }
 
     /** Broken or de-filtered hoppers lose their red tint. */
@@ -112,6 +146,8 @@ public final class FilterVisual {
 
     private void spawnOverlay(Block block) {
         BlockDisplay display = block.getWorld().spawn(block.getLocation(), BlockDisplay.class);
+        // Never saved with the chunk: caps are rebuilt from the hopper data on load.
+        display.setPersistent(false);
         display.setBlock(Material.RED_STAINED_GLASS.createBlockData());
         display.setViewRange(VIEW_RANGE);
         display.setTransformation(new Transformation(TRANSLATION, new Quaternionf(), SCALE, new Quaternionf()));

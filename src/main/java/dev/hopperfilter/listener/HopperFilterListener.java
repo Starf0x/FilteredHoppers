@@ -22,6 +22,7 @@ import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -319,6 +320,12 @@ public final class HopperFilterListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onChunkLoad(ChunkLoadEvent event) {
         plugin.getFilterVisual().rebuildChunk(event.getChunk());
+    }
+
+    /** Entities load after the chunk itself: clear leftover red caps then. */
+    @EventHandler
+    public void onEntitiesLoad(EntitiesLoadEvent event) {
+        plugin.getFilterVisual().removeStale(event.getEntities());
     }
 
     /** A broken hopper drops every filter item it held. */
