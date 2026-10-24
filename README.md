@@ -42,7 +42,7 @@ The name and description of the indicator always tell you which mode you are edi
 
 ### 4. Switching between the modes
 
-Click the **emerald/blackstone** in slot 1. The hopper saves the current mode, switches to the other one, and shows that mode's items. Both lists are kept, so you can fill the green and black modes at the same time.
+Click the **emerald/blackstone** in slot 0. The hopper saves the current mode, switches to the other one, and shows that mode's items. Both lists are kept, so you can fill the green and black modes at the same time.
 
 ### 5. Clearing a filter (partly)
 
@@ -133,7 +133,7 @@ Only the config reload has a permission; **every player** can use shift-right-cl
 
 ## Known limitations
 
-- One hopper holds at most **1 item per mode** (so 1 green + 1 black).
+- One hopper holds at most **17 items per mode** (so 17 green + 17 black).
 - The filter is tied to the **block**, not to a player: anyone with access to the hopper can set filters on it.
 - Removed filter hoppers lose their filter (the block is gone).
 
