@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.Hopper;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -55,8 +56,9 @@ public final class FilterHopperGui implements InventoryHolder {
         }
     }
 
-    /** Writes the GUI items back into the real hopper inventory. */
-    public void commit() {
+    /** Writes the GUI items back into the real hopper inventory. Items the
+     *  filter rejects, or that no longer fit, go back to the player. */
+    public void commit(Player player) {
         Hopper hopper = getHopper();
         if (hopper == null) {
             return;
@@ -67,15 +69,18 @@ public final class FilterHopperGui implements InventoryHolder {
             if (item == null || item.getType() == Material.AIR) {
                 continue;
             }
-            if (tile.getItem(i) != null) {
-                int put = tile.firstEmpty();
-                if (put == -1) {
-                    continue;
-                }
-                tile.setItem(put, item);
+            int put = tile.getItem(i) == null ? i : tile.firstEmpty();
+            if (put == -1 || !plugin.getFilterManager().isAllowed(block, item)) {
+                giveBack(player, item);
             } else {
-                tile.setItem(i, item);
+                tile.setItem(put, item);
             }
+        }
+    }
+
+    private void giveBack(Player player, ItemStack item) {
+        for (ItemStack rest : player.getInventory().addItem(item).values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), rest);
         }
     }
 

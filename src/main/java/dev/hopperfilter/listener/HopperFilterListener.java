@@ -343,7 +343,7 @@ public final class HopperFilterListener implements Listener {
         if (event.getInventory().getHolder() instanceof FilterGui gui) {
             gui.commit();
         } else if (event.getInventory().getHolder() instanceof FilterHopperGui hopperGui) {
-            hopperGui.commit();
+            hopperGui.commit((Player) event.getPlayer());
         }
     }
 
