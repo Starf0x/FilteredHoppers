@@ -20,6 +20,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
@@ -27,7 +28,9 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 public final class HopperFilterListener implements Listener {
 
@@ -303,6 +306,34 @@ public final class HopperFilterListener implements Listener {
         }
         if (!manager.isAllowed(block, event.getItem())) {
             event.setCancelled(true);
+            if (event.getInitiator().equals(event.getDestination())) {
+                pullNextAllowed(block, event.getSource(), event.getDestination());
+            }
+        }
+    }
+
+    /** Containers whose every slot a hopper below may pull from. */
+    private static final Set<InventoryType> PULLABLE = EnumSet.of(InventoryType.CHEST,
+            InventoryType.BARREL, InventoryType.HOPPER, InventoryType.DROPPER,
+            InventoryType.DISPENSER, InventoryType.SHULKER_BOX);
+
+    /** Paper ends a hopper's pull at the first rejected stack, so a filter
+     *  hopper would wait behind every unwanted item and miss the wanted ones
+     *  passing by. Pull one item of the first allowed stack instead. */
+    private void pullNextAllowed(Block block, Inventory source, Inventory hopper) {
+        if (!PULLABLE.contains(source.getType())) {
+            return;
+        }
+        ItemStack[] contents = source.getStorageContents();
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack stack = contents[i];
+            if (!hasItem(stack) || !manager.isAllowed(block, stack)) {
+                continue;
+            }
+            if (hopper.addItem(single(stack)).isEmpty()) {
+                source.setItem(i, shrink(stack, 1));
+                return;
+            }
         }
     }
 
