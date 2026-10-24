@@ -295,6 +295,7 @@ public final class HopperFilterListener implements Listener {
         if (!manager.isAllowed(block, event.getItem().getItemStack())) {
             event.setCancelled(true);
         }
+        debug(block, "pickup", event.getItem().getItemStack(), event.isCancelled());
     }
 
     /** Filter container-to-hopper transfers; normal hoppers pass untouched. */
@@ -310,6 +311,35 @@ public final class HopperFilterListener implements Listener {
                 pullNextAllowed(block, event.getSource(), event.getDestination());
             }
         }
+        debug(block, event.getInitiator().equals(event.getDestination()) ? "pull" : "push",
+                event.getItem(), event.isCancelled());
+    }
+
+    /** Debug: shows when another plugin overrides the filter's decision. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onInventoryMoveResult(InventoryMoveItemEvent event) {
+        Block block = manager.getHopperBlock(event.getDestination());
+        if (plugin.getSettings().isDebug() && block != null && manager.isFilterHopper(block)) {
+            debug(block, "final", event.getItem(), event.isCancelled());
+        }
+    }
+
+    private void debug(Block block, String route, ItemStack item, boolean cancelled) {
+        if (!plugin.getSettings().isDebug()) {
+            return;
+        }
+        plugin.getLogger().info(String.format("[debug] %s %d,%d,%d %s %s -> %s | allow=%s block=%s",
+                block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), route,
+                item.getType(), cancelled ? "BLOCKED" : "passed",
+                types(manager.getItems(block, FilterMode.ALLOW)), types(manager.getItems(block, FilterMode.BLOCK))));
+    }
+
+    private static List<String> types(List<ItemStack> items) {
+        List<String> names = new ArrayList<>();
+        for (ItemStack item : items) {
+            names.add(item.getType().name());
+        }
+        return names;
     }
 
     /** Containers whose every slot a hopper below may pull from. */

@@ -9,6 +9,7 @@ public final class Settings {
     private String guiTitle;
     private boolean matchByType;
     private boolean visualEnabled;
+    private boolean debug;
 
     public Settings(HopperFilterPlugin plugin) {
         this.plugin = plugin;
@@ -20,6 +21,7 @@ public final class Settings {
         guiTitle = cfg.getString("gui-title", "&0Hopper Filter");
         matchByType = cfg.getBoolean("match-by-type", true);
         visualEnabled = cfg.getBoolean("visual-enabled", true);
+        debug = cfg.getBoolean("debug", false);
     }
 
     public String getGuiTitle() {
@@ -32,5 +34,9 @@ public final class Settings {
 
     public boolean isVisualEnabled() {
         return visualEnabled;
+    }
+
+    public boolean isDebug() {
+        return debug;
     }
 }

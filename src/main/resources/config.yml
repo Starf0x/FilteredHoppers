@@ -19,3 +19,6 @@ match-by-type: true
 
 # Visual hint: hoppers with an active filter get a redstone-red tint.
 visual-enabled: true
+
+# Log every item a filter hopper checks (and the final outcome) to the console.
+debug: false
