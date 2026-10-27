@@ -8,7 +8,7 @@ This plugin focuses 100% on **functionality**; for the technical details, look a
 
 ## At a glance
 
-- **Every hopper can be a filter hopper.** A hopper you never configure behaves exactly like vanilla.
+- **Every hopper can be a filter hopper**, and so can every **hopper minecart**. A hopper you never configure behaves exactly like vanilla.
 - **No tools, no extra items.** Everything is done with shift-right-clicks.
 - **Two modes at once per hopper:** an *allow* list (green) and a *block* list (black). The hopper remembers both at the same time and can use them together.
 - **Redstone-red hoppers.** A hopper with an active filter turns redstone red, so you see at a glance which hoppers are active. Its screen also shows the 5 slots inside a red frame.
@@ -29,7 +29,7 @@ The menu has **two rows (18 slots)**:
 
 | Slot | Meaning |
 |------|---------|
-| **Slot 0** | The mode indicator. **Green emerald** = *allow* (green mode). **Black blackstone** = *block* (black mode). |
+| **Slot 0** | The mode indicator. **Green emerald** = *allow* (green mode). **Black blackstone** = *block* (black mode). **Left-click** switches the mode, **right-click** switches the matching (item type / exact item). |
 | **Slot 1-17** | The filter items of the currently displayed mode (max 17 items per mode). |
 
 The name and description of the indicator always tell you which mode you are editing.
@@ -42,7 +42,7 @@ The name and description of the indicator always tell you which mode you are edi
 
 ### 4. Switching between the modes
 
-Click the **emerald/blackstone** in slot 0. The hopper saves the current mode, switches to the other one, and shows that mode's items. Both lists are kept, so you can fill the green and black modes at the same time.
+**Left-click** the **emerald/blackstone** in slot 0. The hopper saves the current mode, switches to the other one, and shows that mode's items. Both lists are kept, so you can fill the green and black modes at the same time.
 
 ### 5. Clearing a filter (partly)
 
@@ -82,7 +82,15 @@ A filter hopper **pushes** everything it contains onward (for example into a che
 
 By default the plugin matches on **item type**: a filter with *iron ingot* lets all iron ingots through, regardless of name or enchantments.
 
-You can switch this in the config to **exact matching**: then name, lore, and enchantments count as well. Useful when you want to single out one specific, named sword.
+**Right-click** the emerald/blackstone to switch *this hopper* to **exact matching**: then name, lore, and enchantments count as well. The config option `match-by-type` only sets the default for hoppers that never chose. Useful when you want to single out one specific, named sword.
+
+### Item groups (tags)
+
+Rename any item in an anvil to **`#` + an item tag**, for example `#logs`, `#wool`, `#planks` or `#minecraft:music_discs`, and put it in a filter slot. That one slot then matches **every item of the group**, in both modes and whatever the matching setting. An unknown tag matches nothing.
+
+### Hopper minecarts
+
+Shift-right-click a hopper minecart with an empty hand to open the same menu. The filter is stored on the minecart, applies to everything it picks up or pulls, and its filter items drop when the minecart is destroyed. Items you put into a minecart by hand are not filtered.
 
 ---
 
@@ -108,6 +116,8 @@ All settings live in `config.yml` in the plugin folder. After a change, reload w
 | `gui-title` | `&0Hopper Filter` | Title of the filter menu (colour codes with `&` are allowed). |
 | `match-by-type` | `true` | `true` = filter on item type; `false` = exact item matching (name/lore/enchantments). |
 | `visual-enabled` | `true` | Tints hoppers with an active filter redstone red (`true`/`false`). |
+| `debug` | `false` | Logs every item a filter hopper checks, and the final outcome, to the console. |
+| `messages.*` | English | Every text players see (menu, hopper screen, command replies). Translate them freely. |
 
 ---
 
@@ -126,8 +136,9 @@ All settings live in `config.yml` in the plugin folder. After a change, reload w
 | Command | Description | Permission |
 |---------|-------------|------------|
 | `/hopperfilter reload` | Reloads the config without a server restart. | `hopperfilter.reload` (operators by default) |
+| shift-right-click | Opens the filter menu of a hopper or hopper minecart. | `hopperfilter.use` (everyone by default) |
 
-Only the config reload has a permission; **every player** can use shift-right-click to manage filters.
+Without `hopperfilter.use`, shift-right-clicking a hopper does what vanilla does. Claim/protection plugins that block opening a hopper also block its filter menu.
 
 ---
 
@@ -135,11 +146,13 @@ Only the config reload has a permission; **every player** can use shift-right-cl
 
 - One hopper holds at most **17 items per mode** (so 17 green + 17 black).
 - The filter is tied to the **block**, not to a player: anyone with access to the hopper can set filters on it.
-- Removed filter hoppers lose their filter (the block is gone).
+- A removed filter hopper loses its filter; its filter items drop when it is broken or blown up.
 
 ---
 
 ## Building & releasing
+
+Every push is built and tested on GitHub Actions (`.github/workflows/build.yml`); the unit tests use [MockBukkit](https://github.com/MockBukkit/MockBukkit) and run with `./gradlew test`.
 
 Requires **Java 21** and the [GitHub CLI](https://cli.github.com) (authenticated). The version lives in `gradle.properties`; the jar name and `plugin.yml` take it from there. **Every rebuild automatically bumps to a newer version.**
 
