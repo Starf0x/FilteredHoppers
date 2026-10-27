@@ -11,6 +11,9 @@ commands:
     aliases: [hfilter]
     permission: hopperfilter.reload
 permissions:
+  hopperfilter.use:
+    description: May open the filter menu of hoppers and hopper minecarts
+    default: true
   hopperfilter.reload:
     description: May reload the hopper filter config
     default: op

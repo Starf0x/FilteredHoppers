@@ -13,7 +13,8 @@
 
 gui-title: "&0Hopper Filter"
 
-# Whether the filter matches only the item type (true), or also
+# Default match mode for hoppers that have not chosen one in the menu
+# (right-click the emerald/blackstone). Matches only the item type (true), or also
 # name/lore/enchantments (false = exact item comparison)?
 match-by-type: true
 
@@ -22,3 +23,24 @@ visual-enabled: true
 
 # Log every item a filter hopper checks (and the final outcome) to the console.
 debug: false
+# All texts players see; translate them freely ('&' colour codes are allowed).
+# Name a filter item "#<item tag>" in an anvil (e.g. "#logs" or "#wool") to
+# filter a whole group of items with one slot.
+messages:
+  menu-hint: "&7Green = allow, black = block. Click the items to filter into the slots and close to save."
+  allow-name: "&2FILTER MODE (allow)"
+  allow-lore:
+    - "&7The items below are &aallowed&7."
+    - "&8Left-click: switch to black (block)"
+  block-name: "&4BLOCK MODE"
+  block-lore:
+    - "&7The items below are &cblocked&7."
+    - "&8Left-click: switch back to green (allow)"
+  match-type: "&7Matching: &fitem type &8(right-click: exact)"
+  match-exact: "&7Matching: &fexact item &8(right-click: item type)"
+  hopper-title: "&0Filter Hopper"
+  frame-name: "&cFilter active"
+  frame-lore:
+    - "&7This hopper only lets filtered items pass."
+  reloaded: "&aConfig reloaded."
+  usage: "&cUsage: /hopperfilter reload"

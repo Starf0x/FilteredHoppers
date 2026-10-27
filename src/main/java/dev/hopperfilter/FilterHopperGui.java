@@ -11,8 +11,6 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.List;
-
 /**
  * The adapted hopper screen shown on a normal right-click when the hopper has
  * an active filter: the 5 real hopper slots sit inside a red frame. Items are
@@ -30,7 +28,7 @@ public final class FilterHopperGui implements InventoryHolder {
     public FilterHopperGui(HopperFilterPlugin plugin, Block block) {
         this.plugin = plugin;
         this.block = block;
-        this.inventory = Bukkit.createInventory(this, GUI_SIZE, Text.colorize("&0Filter Hopper"));
+        this.inventory = Bukkit.createInventory(this, GUI_SIZE, Text.colorize(plugin.getSettings().message("hopper-title")));
         load();
     }
 
@@ -70,7 +68,7 @@ public final class FilterHopperGui implements InventoryHolder {
                 continue;
             }
             int put = tile.getItem(i) == null ? i : tile.firstEmpty();
-            if (put == -1 || !plugin.getFilterManager().isAllowed(block, item)) {
+            if (put == -1 || !plugin.getFilterManager().isAllowed(FilterHolder.of(block), item)) {
                 giveBack(player, item);
             } else {
                 tile.setItem(put, item);
@@ -95,8 +93,8 @@ public final class FilterHopperGui implements InventoryHolder {
     private ItemStack createFrame() {
         ItemStack item = new ItemStack(Material.RED_STAINED_GLASS_PANE);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(Text.colorize("&cFilter active"));
-        meta.lore(List.of(Text.colorize("&7This hopper only lets filtered items pass.")));
+        meta.displayName(Text.colorize(plugin.getSettings().message("frame-name")));
+        meta.lore(plugin.getSettings().messageLines("frame-lore").stream().map(Text::colorize).toList());
         item.setItemMeta(meta);
         return item;
     }
