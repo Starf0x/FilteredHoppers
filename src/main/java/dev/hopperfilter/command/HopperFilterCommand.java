@@ -21,10 +21,10 @@ public final class HopperFilterCommand implements CommandExecutor {
             plugin.getSettings().reload();
             plugin.getFilterVisual().stop();
             plugin.getFilterVisual().start();
-            sender.sendMessage(Text.colorize("&aConfig reloaded."));
+            sender.sendMessage(Text.colorize(plugin.getSettings().message("reloaded")));
             return true;
         }
-        sender.sendMessage(Text.colorize("&cUsage: /hopperfilter reload"));
+        sender.sendMessage(Text.colorize(plugin.getSettings().message("usage")));
         return true;
     }
 }

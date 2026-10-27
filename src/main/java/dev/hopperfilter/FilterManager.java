@@ -1,12 +1,11 @@
 package dev.hopperfilter;
 
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Tag;
 import org.bukkit.block.Block;
-import org.bukkit.block.Hopper;
-import org.bukkit.block.TileState;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -18,11 +17,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Stores the "allow" list and the "block" list per hopper in the NBT of the
- * block, so both modes are known at the same time and survive a server
- * restart. The decoded lists are cached in memory, so the per-item hopper
- * checks (pickup and transfer) never touch NBT again once a hopper is loaded;
- * only saves change the cache.
+ * Stores the "allow" list, the "block" list and the match mode per hopper in
+ * the NBT of the block (or on the hopper minecart), so both modes are known at
+ * the same time and survive a server restart. The decoded lists are cached in
+ * memory, so the per-item hopper checks (pickup and transfer) never touch NBT
+ * again once a hopper is loaded; only saves change the cache. Cache entries are
+ * dropped when their chunk or minecart unloads.
  */
 public final class FilterManager {
 
@@ -30,33 +30,30 @@ public final class FilterManager {
     private final NamespacedKey keyAllow;
     private final NamespacedKey keyBlock;
     private final NamespacedKey keyMode;
+    private final NamespacedKey keyMatch;
 
-    private final Map<Location, FilterCache> caches = new ConcurrentHashMap<>();
+    private final Map<Object, FilterCache> caches = new ConcurrentHashMap<>();
 
     public FilterManager(HopperFilterPlugin plugin) {
         this.plugin = plugin;
         this.keyAllow = new NamespacedKey(plugin, "hopper-filter-allow");
         this.keyBlock = new NamespacedKey(plugin, "hopper-filter-block");
         this.keyMode = new NamespacedKey(plugin, "hopper-filter-mode");
+        this.keyMatch = new NamespacedKey(plugin, "hopper-filter-match");
     }
 
     /** Items of a mode (empty if there are none); returns the cached copy. */
-    public List<ItemStack> getItems(Block block, FilterMode mode) {
-        if (block == null || block.getType() != Material.HOPPER) {
+    public List<ItemStack> getItems(FilterHolder holder, FilterMode mode) {
+        if (holder == null || !holder.isValid()) {
             return List.of();
         }
-        FilterCache cache = cache(block);
+        FilterCache cache = cache(holder);
         return mode == FilterMode.ALLOW ? cache.allow : cache.block;
     }
 
     /** Overwrites the items of a mode; duplicates are dropped; empty removes them. */
-    public void saveFilter(Block block, FilterMode mode, List<ItemStack> items) {
-        if (!(block.getState() instanceof TileState tile)) {
-            return;
-        }
-        PersistentDataContainer pdc = tile.getPersistentDataContainer();
-        NamespacedKey key = mode == FilterMode.ALLOW ? keyAllow : keyBlock;
-        boolean matchByType = plugin.getSettings().isMatchByType();
+    public void saveFilter(FilterHolder holder, FilterMode mode, List<ItemStack> items) {
+        MatchMode match = getMatch(holder);
         List<ItemStack> unique = new ArrayList<>();
         if (items != null) {
             for (ItemStack item : items) {
@@ -65,7 +62,7 @@ public final class FilterManager {
                 }
                 boolean duplicate = false;
                 for (ItemStack stored : unique) {
-                    if (matches(stored, item, matchByType)) {
+                    if (ItemMatcher.sameEntry(stored, item, match)) {
                         duplicate = true;
                         break;
                     }
@@ -77,119 +74,140 @@ public final class FilterManager {
                 }
             }
         }
-        if (unique.isEmpty()) {
-            pdc.remove(key);
-        } else {
-            List<String> encoded = new ArrayList<>();
-            for (ItemStack item : unique) {
-                encoded.add(Base64.getEncoder().encodeToString(item.serializeAsBytes()));
+        NamespacedKey key = mode == FilterMode.ALLOW ? keyAllow : keyBlock;
+        holder.edit(pdc -> {
+            if (unique.isEmpty()) {
+                pdc.remove(key);
+            } else {
+                List<String> encoded = new ArrayList<>();
+                for (ItemStack item : unique) {
+                    encoded.add(Base64.getEncoder().encodeToString(item.serializeAsBytes()));
+                }
+                pdc.set(key, PersistentDataType.LIST.strings(), encoded);
             }
-            pdc.set(key, PersistentDataType.LIST.strings(), encoded);
-        }
-        tile.update();
-        // Refresh the cached lists so the hot path never re-reads NBT.
-        FilterCache cache = new FilterCache();
-        cache.allow = mode == FilterMode.ALLOW ? unique : readList(block, keyAllow);
-        cache.block = mode == FilterMode.BLOCK ? unique : readList(block, keyBlock);
-        cache.mode = readMode(block);
-        cache.loaded = true;
-        caches.put(block.getLocation(), cache);
-        plugin.getFilterVisual().update(block);
+        });
+        // Reload the cache from the saved data so the hot path never re-reads NBT.
+        caches.remove(holder.key());
+        updateVisual(holder);
     }
 
-    /** Removes both filter lists: the hopper becomes 'normal' again. */
-    public void clearFilter(Block block) {
-        caches.remove(block.getLocation());
-        if (!(block.getState() instanceof TileState tile)) {
-            return;
-        }
-        PersistentDataContainer pdc = tile.getPersistentDataContainer();
-        pdc.remove(keyAllow);
-        pdc.remove(keyBlock);
-        pdc.remove(keyMode);
-        tile.update();
-        plugin.getFilterVisual().update(block);
+    /** Removes all filter data: the hopper becomes 'normal' again. */
+    public void clearFilter(FilterHolder holder) {
+        caches.remove(holder.key());
+        holder.edit(pdc -> {
+            pdc.remove(keyAllow);
+            pdc.remove(keyBlock);
+            pdc.remove(keyMode);
+            pdc.remove(keyMatch);
+        });
+        updateVisual(holder);
+    }
+
+    /** Forgets the cached data, e.g. when a new hopper is placed at a location. */
+    public void forget(Object key) {
+        caches.remove(key);
+    }
+
+    /** Forgets the cached data of every hopper block in an unloaded chunk. */
+    public void forgetChunk(Chunk chunk) {
+        caches.keySet().removeIf(key -> key instanceof Location loc
+                && loc.getWorld() == chunk.getWorld()
+                && loc.getBlockX() >> 4 == chunk.getX()
+                && loc.getBlockZ() >> 4 == chunk.getZ());
     }
 
     /** Does this hopper have an active filter (one of the lists filled)? */
+    public boolean isFilterHopper(FilterHolder holder) {
+        return !getItems(holder, FilterMode.ALLOW).isEmpty() || !getItems(holder, FilterMode.BLOCK).isEmpty();
+    }
+
     public boolean isFilterHopper(Block block) {
-        return block != null
-                && (!getItems(block, FilterMode.ALLOW).isEmpty()
-                || !getItems(block, FilterMode.BLOCK).isEmpty());
+        return block != null && isFilterHopper(FilterHolder.of(block));
     }
 
     /** The mode the GUI showed last (default: ALLOW). */
-    public FilterMode getMode(Block block) {
-        return cache(block).mode;
+    public FilterMode getMode(FilterHolder holder) {
+        return cache(holder).mode;
     }
 
-    public void setMode(Block block, FilterMode mode) {
-        if (!(block.getState() instanceof TileState tile)) {
-            return;
+    public void setMode(FilterHolder holder, FilterMode mode) {
+        holder.edit(pdc -> pdc.set(keyMode, PersistentDataType.BOOLEAN, mode == FilterMode.BLOCK));
+        cache(holder).mode = mode;
+    }
+
+    /** The match mode of this hopper; the config default if none was chosen. */
+    public MatchMode getMatch(FilterHolder holder) {
+        MatchMode match = cache(holder).match;
+        if (match != null) {
+            return match;
         }
-        tile.getPersistentDataContainer().set(keyMode, PersistentDataType.BOOLEAN, mode == FilterMode.BLOCK);
-        tile.update();
-        cache(block).mode = mode;
+        return plugin.getSettings().isMatchByType() ? MatchMode.TYPE : MatchMode.EXACT;
+    }
+
+    public void setMatch(FilterHolder holder, MatchMode match) {
+        holder.edit(pdc -> pdc.set(keyMatch, PersistentDataType.STRING, match.name()));
+        caches.remove(holder.key());
     }
 
     /** May the item enter the hopper? The block list always wins; if the allow
      *  list has items, the item also has to match one of them. */
-    public boolean isAllowed(Block block, ItemStack item) {
-        if (item == null) {
+    public boolean isAllowed(FilterHolder holder, ItemStack item) {
+        if (item == null || holder == null || !holder.isValid()) {
             return true;
         }
-        boolean matchByType = plugin.getSettings().isMatchByType();
-        for (ItemStack blocked : getItems(block, FilterMode.BLOCK)) {
-            if (matches(blocked, item, matchByType)) {
+        FilterCache cache = cache(holder);
+        MatchMode match = getMatch(holder);
+        for (Entry blocked : cache.blockEntries) {
+            if (blocked.matches(item, match)) {
                 return false;
             }
         }
-        List<ItemStack> allow = getItems(block, FilterMode.ALLOW);
-        if (allow.isEmpty()) {
+        if (cache.allowEntries.isEmpty()) {
             return true;
         }
-        for (ItemStack allowed : allow) {
-            if (matches(allowed, item, matchByType)) {
+        for (Entry allowed : cache.allowEntries) {
+            if (allowed.matches(item, match)) {
                 return true;
             }
         }
         return false;
     }
 
-    private boolean matches(ItemStack filterItem, ItemStack item, boolean matchByType) {
-        return matchByType ? filterItem.getType() == item.getType() : filterItem.isSimilar(item);
-    }
-
-    /** Is this inventory owned by a hopper? If so, return the block. */
-    public Block getHopperBlock(Inventory inventory) {
-        if (inventory != null && inventory.getHolder() instanceof Hopper hopper) {
-            return hopper.getBlock();
+    private void updateVisual(FilterHolder holder) {
+        if (holder.getBlock() != null) {
+            plugin.getFilterVisual().update(holder.getBlock());
         }
-        return null;
     }
 
     /** Returns (and populates) the in-memory copy of a hopper's filter data. */
-    private FilterCache cache(Block block) {
-        Location loc = block.getLocation();
-        FilterCache cache = caches.get(loc);
-        if (cache == null) {
-            cache = new FilterCache();
-            caches.put(loc, cache);
+    private FilterCache cache(FilterHolder holder) {
+        return caches.computeIfAbsent(holder.key(), key -> load(holder));
+    }
+
+    private FilterCache load(FilterHolder holder) {
+        FilterCache cache = new FilterCache();
+        PersistentDataContainer pdc = holder.data();
+        if (pdc == null) {
+            return cache;
         }
-        if (!cache.loaded) {
-            cache.allow = readList(block, keyAllow);
-            cache.block = readList(block, keyBlock);
-            cache.mode = readMode(block);
-            cache.loaded = true;
+        cache.allow = readList(pdc, keyAllow);
+        cache.block = readList(pdc, keyBlock);
+        cache.allowEntries = compile(cache.allow);
+        cache.blockEntries = compile(cache.block);
+        if (Boolean.TRUE.equals(pdc.get(keyMode, PersistentDataType.BOOLEAN))) {
+            cache.mode = FilterMode.BLOCK;
+        }
+        String match = pdc.get(keyMatch, PersistentDataType.STRING);
+        if (match != null) {
+            try {
+                cache.match = MatchMode.valueOf(match);
+            } catch (IllegalArgumentException ignored) {
+            }
         }
         return cache;
     }
 
-    private List<ItemStack> readList(Block block, NamespacedKey key) {
-        if (!(block.getState() instanceof TileState tile)) {
-            return List.of();
-        }
-        PersistentDataContainer pdc = tile.getPersistentDataContainer();
+    private List<ItemStack> readList(PersistentDataContainer pdc, NamespacedKey key) {
         List<String> encoded = pdc.get(key, PersistentDataType.LIST.strings());
         if (encoded == null) {
             return List.of();
@@ -204,20 +222,31 @@ public final class FilterManager {
         return items;
     }
 
-    private FilterMode readMode(Block block) {
-        if (block.getState() instanceof TileState tile) {
-            Boolean blockMode = tile.getPersistentDataContainer().get(keyMode, PersistentDataType.BOOLEAN);
-            if (Boolean.TRUE.equals(blockMode)) {
-                return FilterMode.BLOCK;
-            }
+    /** Resolves "#tag" filter items once, so the per-item checks stay cheap. */
+    private static List<Entry> compile(List<ItemStack> items) {
+        List<Entry> entries = new ArrayList<>();
+        for (ItemStack item : items) {
+            boolean isTag = ItemMatcher.tagKey(item) != null;
+            entries.add(new Entry(item, isTag, isTag ? ItemMatcher.tag(item) : null));
         }
-        return FilterMode.ALLOW;
+        return entries;
+    }
+
+    private record Entry(ItemStack item, boolean isTag, Tag<Material> tag) {
+        boolean matches(ItemStack other, MatchMode match) {
+            if (isTag) {
+                return tag != null && tag.isTagged(other.getType());
+            }
+            return match == MatchMode.TYPE ? item.getType() == other.getType() : item.isSimilar(other);
+        }
     }
 
     private static final class FilterCache {
         List<ItemStack> allow = List.of();
         List<ItemStack> block = List.of();
+        List<Entry> allowEntries = List.of();
+        List<Entry> blockEntries = List.of();
         FilterMode mode = FilterMode.ALLOW;
-        boolean loaded;
+        MatchMode match;
     }
 }
