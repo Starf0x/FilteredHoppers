@@ -6,7 +6,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.logging.Level;
 
-public final class HopperFilterPlugin extends JavaPlugin {
+// Not final: MockBukkit subclasses the plugin class in the unit tests.
+public class HopperFilterPlugin extends JavaPlugin {
 
     private static HopperFilterPlugin instance;
 
