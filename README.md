@@ -1,6 +1,6 @@
 # FilteredHoppers
 
-A plugin for [Paper](https://papermc.io) (Minecraft **1.21.x**) that turns **every hopper** into a smart filter hopper. You configure per hopper which items it lets through or blocks, so you can build your own sorting setups without any redstone headaches.
+A plugin for [Paper](https://papermc.io) and [Purpur](https://purpurmc.org) (Minecraft **1.21.x**) that turns **every hopper** into a smart filter hopper. You configure per hopper which items it lets through or blocks, so you can build your own sorting setups without any redstone headaches.
 
 This plugin focuses 100% on **functionality**; for the technical details, look at the code or the config.
 
@@ -123,7 +123,7 @@ All settings live in `config.yml` in the plugin folder. After a change, reload w
 
 ## Installing
 
-1. Use a **Paper** server of **1.21.x** (the plugin does not work on Spigot).
+1. Use a **Paper** or **Purpur** server of **1.21.x** or newer (tested on 1.21.4, 1.21.11 and 26.2). Other Paper forks should work too; plain Spigot/Bukkit, Folia and Sponge are not supported.
 2. Make sure **Java 21** is installed.
 3. Copy `FilteredHoppers.jar` into your server's `plugins/` folder.
 4. Restart the server (or use a plugin manager such as PlugMan).
