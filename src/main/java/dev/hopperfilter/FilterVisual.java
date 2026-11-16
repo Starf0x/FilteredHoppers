@@ -28,12 +28,14 @@ public final class FilterVisual {
 
     private static final float VIEW_RANGE = 1.0f;
     private static final long CLEANUP_PERIOD = 20L;
-    // A thin red glass plate, exactly the size of the hopper block, resting on
-    // the top edge: half of its thickness is pressed into the hopper, half
-    // sticks out above it, so it never z-fights.
+    // A thin red glass plate, exactly the size of the hopper block, sitting
+    // two pixels below the top edge, inside the rim (half a pixel offset so
+    // it never z-fights).
     private static final float PX = 1f / 16f;
     private static final Vector3f SCALE = new Vector3f(1f, PX, 1f);
-    private static final Vector3f TRANSLATION = new Vector3f(0f, 1f - PX / 2f, 0f);
+    private static final Vector3f TRANSLATION = new Vector3f(0f, 1f - PX / 2f - 2 * PX, 0f);
+    /** Position of caps made by versions before 0.5.49, still cleaned up. */
+    private static final Vector3f OLD_TRANSLATION = new Vector3f(0f, 1f - PX / 2f, 0f);
 
     private final HopperFilterPlugin plugin;
     private final Map<Location, BlockDisplay> overlays = new ConcurrentHashMap<>();
@@ -115,7 +117,8 @@ public final class FilterVisual {
     private static boolean isCap(BlockDisplay display) {
         Transformation t = display.getTransformation();
         return display.getBlock().getMaterial() == Material.RED_STAINED_GLASS
-                && t.getScale().equals(SCALE, 1e-4f) && t.getTranslation().equals(TRANSLATION, 1e-4f);
+                && t.getScale().equals(SCALE, 1e-4f) && (t.getTranslation().equals(TRANSLATION, 1e-4f)
+                || t.getTranslation().equals(OLD_TRANSLATION, 1e-4f));
     }
 
     /** A tracked cap whose entity was unloaded with its chunk no longer counts. */

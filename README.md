@@ -92,6 +92,10 @@ Rename any item in an anvil to **`#` + an item tag**, for example `#logs`, `#woo
 
 Shift-right-click a hopper minecart with an empty hand to open the same menu. The filter is stored on the minecart, applies to everything it picks up or pulls, and its filter items drop when the minecart is destroyed. Items you put into a minecart by hand are not filtered.
 
+### Sorters: items passing by above
+
+A filter hopper below a hopper that points sideways catches **every** matching item that passes through the hopper above, no matter the timing: when the upper hopper is about to push a wanted item sideways, the item goes down into the filter hopper instead (as long as it has room and is not locked by redstone). Items that do not match keep moving sideways as usual.
+
 ---
 
 ## The red hoppers

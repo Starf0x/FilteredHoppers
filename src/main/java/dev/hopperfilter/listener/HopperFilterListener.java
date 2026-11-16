@@ -337,6 +337,9 @@ public final class HopperFilterListener implements Listener {
     public void onInventoryMove(InventoryMoveItemEvent event) {
         FilterHolder holder = FilterHolder.of(event.getDestination());
         if (holder == null || !manager.isFilterHopper(holder)) {
+            if (!pulling && event.getInitiator().equals(event.getSource())) {
+                catchPassing(event);
+            }
             return;
         }
         if (!manager.isAllowed(holder, event.getItem())) {
@@ -415,6 +418,69 @@ public final class HopperFilterListener implements Listener {
                 return;
             }
         }
+    }
+
+    /** A hopper that pushes sideways (or into another container) while a
+     *  filter hopper sits below it: vanilla timing decides whether the item
+     *  goes sideways or is pulled down first, so wanted items slipped past.
+     *  A wanted item is now always handed to the filter hopper below, as
+     *  long as it has room and is not locked by redstone. The push is
+     *  cancelled and the item moved one tick later: during the event Paper
+     *  holds a shrunk copy of the slot, so touching it now would dupe. */
+    private void catchPassing(InventoryMoveItemEvent event) {
+        Inventory source = event.getSource();
+        if (source.getType() != InventoryType.HOPPER) {
+            return;
+        }
+        Location loc = source.getLocation();
+        if (loc == null || loc.getBlock().getType() != Material.HOPPER) {
+            return;
+        }
+        Block below = loc.getBlock().getRelative(0, -1, 0);
+        if (below.getType() != Material.HOPPER || !manager.isFilterHopper(below)
+                || !((org.bukkit.block.data.type.Hopper) below.getBlockData()).isEnabled()) {
+            return;
+        }
+        FilterHolder holder = FilterHolder.of(below);
+        ItemStack item = single(event.getItem());
+        if (!manager.isAllowed(holder, item)) {
+            return;
+        }
+        Inventory filter = ((org.bukkit.block.Hopper) below.getState(false)).getInventory();
+        if (!hasRoom(filter, item)) {
+            return;
+        }
+        // Announce the move so protection/logging plugins may refuse it.
+        InventoryMoveItemEvent move = new InventoryMoveItemEvent(source, item.clone(), filter, false);
+        pulling = true;
+        try {
+            plugin.getServer().getPluginManager().callEvent(move);
+        } finally {
+            pulling = false;
+        }
+        if (move.isCancelled()) {
+            return;
+        }
+        event.setCancelled(true);
+        debug(holder, "catch", item, false);
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (loc.getBlock().getType() != Material.HOPPER || below.getType() != Material.HOPPER
+                    || !source.containsAtLeast(item, 1) || !hasRoom(filter, item)) {
+                return;
+            }
+            if (filter.addItem(item.clone()).isEmpty()) {
+                source.removeItem(item.clone());
+            }
+        });
+    }
+
+    private boolean hasRoom(Inventory inv, ItemStack item) {
+        for (ItemStack slot : inv.getStorageContents()) {
+            if (!hasItem(slot) || (slot.isSimilar(item) && slot.getAmount() < slot.getMaxStackSize())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Closing a GUI saves the displayed mode / merges items back. */
